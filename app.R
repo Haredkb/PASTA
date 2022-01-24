@@ -1,82 +1,158 @@
 ##app
-
+source("global.R")
 # Use the module in an application
 ui <- fluidPage(
   theme = shinytheme("cosmo"),
   navbarPage(selected = "NWIS Stream Data",
              ###APP TITLE###
-             "Automated Paired Stream and Air Temperature Analysis",
-             tabPanel("NWIS Stream Data",
+             "PASTA: Paired Stream and Air Temperature Analysis",
+             
+        ##-------NWIS-----------#####
+            tabPanel("NWIS Stream Data",
                nwisUI("nwisModule")
              ),
              
+        
+        ##------User-defined Tab-------###########
              #To create a moduler from these data it would require much updating due to the mulitple "UpdateSelectInput" functionality
              #tabPanel("User Data",
                #userDefinedUI("user defined inputs")
-               tabPanel(
+        
+        ##################################
+        ## User Data Tab 
+        ###################################
+            tabPanel(
                  "User-defined Data",
-                 sidebarPanel(
-                   
-                   p("Under Development"),
-                   
-                   "Stream Temperature Dataset (required)",
-                   numericInput("colnm_row", "Row Number of Column Names", value = 1),
-                   fileInput("upload_water", "C:/Users/hared/Dropbox/UConn/Projects/300_Network_GW_Temp/200_Data_Input/SWT/LTER/HarvardForest/Big_Low.csv"),
-                   
-                   selectInput("date_colnm", "User Date Column Name", choices = NULL),
-                   textInput("date_format", "Correct Date Format", placeholder = "%m/%d/%Y"),
-                   a("Date Format Tips     ", "https://www.statmethods.net/input/dates.html"),#
-                   selectInput("ID_colnm", "User ID Column Name", choices = NULL),
-                   selectInput("T_colnm", "User Stream Temperature Column Name", choices = NULL),
-                   radioButtons("temp_unit", "Temperature Units", choices = c("celsius" = "cel", 
-                                                                                  "fahrenheit" = "fhr", 
-                                                                                  "kelvin" = "kel"), 
-                                selected =  "celsius"),
-                   
-                   actionButton("colselect", "Update Stream Temperature DataTable"),
-                   
-                   ##Location Dataset - can read in same Temperature file if that where it exists? 
-                   "Stream Location Data (required for Daymet data and plotting functionality)",
-                   "Can be the same as Stream Temperature data input",
-                   fileInput("upload_loc", NULL),
-                   "select lat and long columns NOTE*(have to select columns body not column header)",
-                   selectInput("IDloc_colnm", "User ID Column Name", choices = NULL), #needs to be distinct from ID id above
-                   selectInput("lat_colnm", "User latitude column name", choices = NULL),
-                   selectInput("long_colnm", "User longitude column name", choices = NULL),
-                   actionButton("locselect", "Update Location DataTable"),
-                   
-                   
-                   ##Air Temperature Inputs
-                   checkboxInput("air_included", "Calculate using user input Air Temperature"),
-                   actionButton("daymet_select", "Use Daymet Air Temperature Data"),
-                   downloadButton("downloadInputdata", "Download Input DataTable"),
-                   actionButton("calc_metric_u", "Calculate Thermal Metrics"),
-                   br(),
-                   "Air Temperature Dataset (optional)",
-                   fileInput("upload_air", NULL)
-                   
-                 ),
-                 ##main panel with tabs for different output 
-                 mainPanel(
-                   h2("User Input Data"),
-                   #themal metrics dataframe
-                   DT::dataTableOutput("user_dataTM"),
-                   #Datatable with air 
-                   DT::dataTableOutput("user_dataair"),
-                   #datatable stream T data 
-                   DT::dataTableOutput("user_dataavail"),
-                   #datatable location data 
-                   DT::dataTableOutput("user_dataloc"),
-                   #leafletOutput("user_dataavailmap"),
-                   DT::dataTableOutput("user_datainput"),
-                   
-                   p(),
-                   
-                 ),
+              
+                 tabsetPanel(id = "user_calc", type = "tabs",
+                             
+                             
+                        tabPanel("Original Data Files",
+                            tags$head(
+                            tags$style(HTML("
+                              .shiny-split-layout > div {
+                                overflow: visible;
+                              }
+                              "))),# always have the full select options visable when using split-layout 
+                            tags$head(
+                              tags$style(HTML("hr {border-top: 1px solid #000000;}")) #make horizontal lines black
+                            ),
+                            
+                            headerPanel("This tab is to be used for setting up stream temperature data for analysis"),
+                            
+                            column(width = 8,
+                               strong("Follow these steps to conduct thermal metric analysis.
+                                      Required datasets are stream temperature dataaset (multiple sites allowed),
+                                      and site location dataset with matching site ids"),
+                               hr(),
+                                         h4("1a: Upload Stream Temperature Dataset CSV (required columns: site ID, stream temperature, date (or date time)),
+                                            upload can take a moment"),
+                                         splitLayout(
+                                            numericInput("colnm_row", "Column Header Row Value", value = 1),
+                                            fileInput("upload_water", "upload raw stream temperature")
+                                            ),
+                                         
+                                         h4("1b: Choose the columns names that correspond to the correct variables:"),
+                               
+                                            splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
+                                         
+                                            splitLayout(selectInput("date_colnm", "Date Column", choices = NULL),
+                                                        textInput("date_format", "Input date format:", placeholder = "%m/%d/%Y"),
+                                                        a("Date Format Tips", href= "https://www.statmethods.net/input/dates.html")
+                                            ),
+                                         
+                                            splitLayout(selectInput("T_colnm", "Stream Temperature (Daily or SubDaily)", choices = NULL),
+                                                        radioButtons("temp_unit", "Temperature Units", choices = c("celsius" = "cel", 
+                                                                                                                   "fahrenheit" = "fhr", 
+                                                                                                                  "kelvin" = "kel"))
+                                            ),
+                                         
+                                         
+                                          
+                                         actionButton("colselect", "Tidy Stream Temperature Table"),
+                               
+                               hr(),
+
+                               DT::dataTableOutput("user_datainput"),
+                               
+                               hr(),
+                               
+                                          splitLayout(
+                                           ##Location Dataset - can read in same Temperature file if that where it exists? 
+                                                h4("2a. Enter Stream Location Data"),
+                                                fileInput("upload_loc", NULL),
+                                           ),
+                                          p("Can be the same datatable as Stream Temperature data input, location datum must be WGS84 lat/long"),
+                               
+                                         h4("2b: Choose the columns names that correspond to the correct variables:"),
+                                         splitLayout(
+                                           selectInput("IDloc_colnm", "Site ID", choices = NULL), #needs to be distinct from ID id above
+                                           selectInput("lat_colnm", "Latitude column", choices = NULL),
+                                           selectInput("long_colnm", "Longitude column", choices = NULL),
+                                           actionButton("locselect", "Update Location DataTable")
+                                         ),
+                                hr(),
+                               
+                               #datatable stream T data 
+                               DT::dataTableOutput("user_dataavail"),
+                               #datatable location data 
+                               DT::dataTableOutput("user_dataloc"),
+                                
+                               hr(),
+                                           ##Air Temperature Inputs
+                                         h4("3: Add Air Temperature Data (currently only daymet data option)"),
+                                         actionButton("daymet_select", "Use Daymet Air Temperature Data"),
+                               
+                               hr(),
+                               DT::dataTableOutput("user_dataair"),
+            
+                                         h4("Optional: Output combined stream temperature and air temperature dataframe"),
+                                           downloadButton("downloadInputdata", "Download Input DataTable"),
+                                          
+                                        hr(),
+                                          
+                                         h4("6: Calculate Thermal Metrics"),
+                                           actionButton("calc_metric_u", "Calculate Thermal Metrics",
+                                                        style="color: #fff; background-color: #FF0000; border-color: #2e6da4"),
+                                           br()
+                    
+                               
+                                          #### To add option for user air. 
+                                                       # "Air Temperature Dataset (optional)",
+                                                       # checkboxInput("air_included", "Calculate using user input Air Temperature"),
+                                                       # fileInput("upload_air", NULL)
+                                                       
+                                  )#end column
+   
+
+                             
+            ), #end messy user input - tabpanel 
+                              
+        tabPanel("Cleaned Data Input Files",
+                 fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                 checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                 #DT::dataTableOutput("user_dataair")
+        ),
+        
+        tabPanel("Thermal Metric Results",
+                                        #themal metrics dataframe for each year of analysis
+                                        DT::dataTableOutput("user_dataTM"),
+                                        downloadButton("download_user_dataTM", "Download Thermal Metric DataTable"),
+                                        DT::dataTableOutput("user_yearlyTM"),
+                                        downloadButton("download_user_yearlyTM", "Download Yearly Thermal Metric DataTable")
+                                        
+                               )
                  
-               ) #end userdefined UI
-)
-)
+
+            )#end user defined tab panel
+        ##########################################
+        
+        
+            )
+        )#NavPage
+  )#end fluidpage
+
+
 
 ########################################################################
 ########## SERVER ######################################################
@@ -84,6 +160,7 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+  options(shiny.maxRequestSize=30*1024^2)#increase max upload size to 30MB
   
   nwisServer("nwisModule")
   #userDefinedServer("user defined inputs")
@@ -127,7 +204,8 @@ server <- function(input, output, session) {
   sTem_df <- eventReactive(input$colselect, {
     df <- user_data()%>% #[,input$user_datainput_columns_selected] 
       rename("site_id" = input$ID_colnm , "date_raw" = input$date_colnm, "T_stream"  = input$T_colnm)%>%
-      mutate(date = as.Date(date_raw, format = input$date_format, tryFormats = c("%m/%d/%Y"))) %>%
+      mutate(date = as.Date(date_raw, format = input$date_format, tryFormats = c("%m/%d/%Y")),
+             site_id = as.factor(site_id)) %>%
       dplyr::select(site_id, date, T_stream, date_raw)%>%
       group_by(site_id) %>%
       timetk::summarise_by_time( #for daily time steps from hourly.
@@ -204,8 +282,12 @@ server <- function(input, output, session) {
   sLoc_df <- eventReactive(input$locselect, {
     user_loc() %>%
       rename("site_id" = input$IDloc_colnm , "lat" = input$lat_colnm, "long" = input$long_colnm)%>%
-      dplyr::select("site_id", "lat", "long") #to get column order correct and drop unused columns
-  })
+      dplyr::select("site_id", "lat", "long")%>% #to get column order correct and drop unused columns
+      mutate(site_id = as.factor(site_id))%>%#to eal with numeric site ids
+      dplyr::group_by(site_id)%>%
+      dplyr::summarise_all(funs(mean))%>% # all lat and long should be the same. 
+      na.omit()
+      })
   
   # show updated table based on column selected
   observeEvent(input$locselect, { #stream temperature df = sT_df
@@ -251,19 +333,21 @@ server <- function(input, output, session) {
   
   ####Join Air and Stream ### 
   ##dataframe temperature = Tem_df##
+  
+  #
   Tem_df <- reactive({
     left_join(sTem_df(), aTem_df(), by = c("site_id", "date"))
   })
   
-  #output table
+#output table
   output$user_dataair <-DT::renderDataTable( #https://rstudio.github.io/DT/server.html for largr data
-    head(Tem_df()), server = FALSE, selection = list(target = 'column'),
+    Tem_df(), server = FALSE, selection = list(target = 'column'),
     caption = 'Daymet Raw Data Table'
   )
   
   
   
-  ##Download Metric Output Table 
+  ##Download Cleaned Data Output Table wth Air
   output$downloadInputdata <- downloadHandler(
     filename = function() {
       paste("DataInput_UserData.csv")
@@ -273,18 +357,70 @@ server <- function(input, output, session) {
     }
   )
   
+  ##change view to resutls panel
+  observeEvent(input$calc_metric_u, {
+    updateTabsetPanel(session, "user_calc", #id of tabset in ui, 
+                      selected = "Thermal Metric Results")
+  })
   
   ### conduct thermal analysis
   TM_data <- eventReactive(input$calc_metric_u,{
     #conduct therm analysis 
-    therm_analysis(Tem_df(), loc_df())    
+    therm_analysis(Tem_df())#, loc_df())    
   })
   
-  #output location table
+  ### conduct yearly thermal analysis
+  TM_data_byyear <- eventReactive(input$calc_metric_u,{
+    T.y <- add_waterYear(Tem_df())
+    T.yl <- lapply(levels(T.y$year_water), function(x){
+      
+      df.y <- T.y %>%
+        filter(year_water == x)%>%
+        (therm_analysis(.))#, data_gap_check(.), by = "site_id")
+      
+      df.y$year <- x # add water year as a value in table
+      
+      df.y#return dataframe
+    })
+    
+    #names(T.yl) <- levels(T.y$year_water)
+    #conduct therm analysis 
+    df <- do.call(rbind.data.frame, T.yl)#return single dataframe
+    
+  })
+  
+  #output lthermal metric table
   output$user_dataTM <-DT::renderDataTable(
     TM_data(), server = FALSE, selection = list(target = 'column'),
     caption = 'Thermal Metrics DataTable'
   )
+  
+  ##Download Thermal Metric Output Table 
+  output$download_user_dataTM <- downloadHandler(
+    filename = function() {
+      paste("DataOutput_UserData.csv")
+    },
+    content = function(file) {
+      write.csv(TM_data(), file, row.names = FALSE)
+    }
+  )
+  
+  #output thermal metric table by year (seperate tab)
+  output$user_yearlyTM <- DT::renderDataTable(
+    TM_data_byyear(), server = FALSE, selection = list(target = 'column')
+  )
+  
+  
+  ##Download Yearly Metric Output Table 
+  output$download_user_yearlyTM <- downloadHandler(
+    filename = function() {
+      paste("DataOutput_UserData_yearly.csv")
+    },
+    content = function(file) {
+      write.csv(TM_data_byyear(), file, row.names = FALSE)
+    }
+  )
+  
   
 }
 

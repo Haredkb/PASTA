@@ -20,6 +20,8 @@ library(lubridate)
 # path = file.path(tempdir(), "AnnualTSignals")
 # usethis::create_package(path)
 
+
+
 source("R/daymet_data_v1.R")
 source("R/paired_annualT_signals.R")
 source("R/stream_thermal_sensitivity.R")

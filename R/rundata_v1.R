@@ -20,24 +20,41 @@ library(lubridate)
 # path = file.path(tempdir(), "AnnualTSignals")
 # usethis::create_package(path)
 
+library(smwrBase) #for water year
+
 source("R/daymet_data_v1.R")
 source("R/paired_annualT_signals.R")
 source("R/stream_thermal_sensitivity.R")
 #source("R/baseflow_regression.R")
 
-therm_analysis <- function(df_tem, df_loc){ 
+
+############
+add_waterYear <- function(df_tem){
+  #rename temperature dataframe
+      df_tem <- df_tem %>%
+        rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)
+      
+      df_tem$year_water <- as.factor(waterYear(df_tem$date))
+      
+      return(df_tem)
+}
+
+
+############
+therm_analysis <- function(df_tem){#, df_loc){ 
   #df(3col) must have first column siteID, second column date, and third stream tempC; df_loc(3 col) must have siteID and lat long
   Start_time = Sys.time()
-  
+
   df_temp <- df_tem %>%
     rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)
   
   ### ADD IN MAKING SURE ITS DAILY TIME STEPS
   
   
-  df_loc <- df_loc %>%
-    rename("site_id" =1, "lat" =2 , "long"=3, "start.date" = 4, "end.date" = 5)%>%
-    dplyr::select(2:5,1)#reorder so lat and long are 1 and 2
+  ### Add in sepate function 
+  # df_loc <- df_loc %>%
+  #   rename("site_id" =1, "lat" =2 , "long"=3, "start.date" = 4, "end.date" = 5)%>%
+  #   dplyr::select(2:5,1)#reorder so lat and long are 1 and 2
 
   #make station ids factors for grouping
   df_temp$site_id <- as.factor(df_temp$site_id)
@@ -48,7 +65,7 @@ therm_analysis <- function(df_tem, df_loc){
         
         
         ########----------------Thermal Senstivity Analysis ----------------#########
-        #### COnduct Temperature Sensitivity - Kelleher 2012
+        #### Conduct Temperature Sensitivity - Kelleher 2012
         TS_lm_fit <- lapply(names(df_temp_l), function(x){
           T_lm_fit <- fit_ThermalSens(df_temp_l[[x]][,"date"], 
                                       df_temp_l[[x]][,"tavg_air_C"], 
@@ -92,7 +109,8 @@ therm_analysis <- function(df_tem, df_loc){
         TAS_metrics <- do.call("rbind", TAS_sin_fit) %>%
           group_by(site_id) %>%
           summarize(AmpRatio = round(last(amplitude_C)/first(amplitude_C),2),
-                    PhaseLag_d = round(last(phase_d) - first(phase_d),2))
+                    PhaseLag_d = round(last(phase_d) - first(phase_d),2),
+                    Ratio_Mean = round(last(YInt) / first(YInt),2))
         
         
         ################################################################
@@ -101,8 +119,9 @@ therm_analysis <- function(df_tem, df_loc){
         
         
         Metric_Output <- left_join(TAS_metrics, TS_metrics[,c(1,2,5)], 
-                                               by = "site_id") %>%
-                          left_join(., df_loc, by = "site_id")
+                                               by = "site_id") #%>%
+        #do in a seperate analysis                   
+        #left_join(., df_loc, by = "site_id")
         
         
         output <- left_join(df_temp, TAS_metrics, by = "site_id")

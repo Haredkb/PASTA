@@ -1,0 +1,11 @@
+name: pastaapp
+title:
+username:
+account: hydrohare
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5484556
+bundleId: 5494002
+url: https://hydrohare.shinyapps.io/pastaapp/
+when: 1642786272.43102
+lastSyncTime: 1642786272.43102

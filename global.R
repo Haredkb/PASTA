@@ -24,7 +24,7 @@ suppressPackageStartupMessages({
   
   #for app functions
   source("serverFunctions.R")
-  source("UIFunctions.R")
+  source("uiFunctions.R")
 
 })
 
