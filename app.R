@@ -1,8 +1,13 @@
 ##app
 source("global.R")
+
 # Use the module in an application
 ui <- fluidPage(
   theme = shinytheme("cosmo"),
+  setBackgroundColor(color = "ghostwhite"),
+  #use of shinydashboard items without a dashboard - I use for 'box' package
+  useShinydashboard(),
+  
   navbarPage(selected = "NWIS Stream Data",
              ###APP TITLE###
              "PASTA: Paired Stream and Air Temperature Analysis",
@@ -28,26 +33,33 @@ ui <- fluidPage(
                              
                              
                         tabPanel("Original Data Files",
+                                 #adjust styles
                             tags$head(
-                            tags$style(HTML("
-                              .shiny-split-layout > div {
-                                overflow: visible;
-                              }
-                              "))),# always have the full select options visable when using split-layout 
-                            tags$head(
-                              tags$style(HTML("hr {border-top: 1px solid #000000;}")) #make horizontal lines black
+                              
+                                tags$style(HTML("
+                                  .shiny-split-layout > div { overflow: visible;}
+                                  ")),# always have the full select options visable when using split-layout 
+                                
+                                  tags$style(HTML("hr {border-top: 1px solid #000000;}")) #make horizontal lines black
                             ),
                             
                             headerPanel("This tab is to be used for setting up stream temperature data for analysis"),
                             
-                            column(width = 8,
+                            fluidRow(
+                              
+                              
+                              #--------------------------------------------------#
+                              # Box 1 for Stream Temperature
+                              #--------------------------------------------
+                              box(title = "Step 1: Stream Temperature Data", width = 4, status = "primary",
+                                  ##Content of Box 1
                                strong("Follow these steps to conduct thermal metric analysis.
                                       Required datasets are stream temperature dataaset (multiple sites allowed),
                                       and site location dataset with matching site ids"),
                                hr(),
                                          h4("1a: Upload Stream Temperature Dataset CSV (required columns: site ID, stream temperature, date (or date time)),
                                             upload can take a moment"),
-                                         splitLayout(
+                                         splitLayout(cellWidths = c("25%", "75%"),
                                             numericInput("colnm_row", "Column Header Row Value", value = 1),
                                             fileInput("upload_water", "upload raw stream temperature")
                                             ),
@@ -57,10 +69,12 @@ ui <- fluidPage(
                                             splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
                                          
                                             splitLayout(selectInput("date_colnm", "Date Column", choices = NULL),
-                                                        textInput("date_format", "Input date format:", placeholder = "%m/%d/%Y"),
-                                                        a("Date Format Tips", href= "https://www.statmethods.net/input/dates.html")
+                                                        textInput("date_format", "Input date format:", placeholder = "%m/%d/%Y", value = "%m/%d/%Y")
+                                                        
                                             ),
-                                         
+                               
+                                          a("Date Format Tips", href= "https://www.statmethods.net/input/dates.html"),
+                               
                                             splitLayout(selectInput("T_colnm", "Stream Temperature (Daily or SubDaily)", choices = NULL),
                                                         radioButtons("temp_unit", "Temperature Units", choices = c("celsius" = "cel", 
                                                                                                                    "fahrenheit" = "fhr", 
@@ -70,13 +84,14 @@ ui <- fluidPage(
                                          
                                           
                                          actionButton("colselect", "Tidy Stream Temperature Table"),
-                               
-                               hr(),
+                               hr()
+                              ),#close box for step 1
+                           
 
-                               DT::dataTableOutput("user_datainput"),
-                               
-                               hr(),
-                               
+                            #--------------------------------------------------#
+                            # Box 2 for Stream Location 
+                            #--------------------------------------------
+                            box(title = "Step 2: Site Location Data", width = 4, status = "primary",
                                           splitLayout(
                                            ##Location Dataset - can read in same Temperature file if that where it exists? 
                                                 h4("2a. Enter Stream Location Data"),
@@ -88,33 +103,54 @@ ui <- fluidPage(
                                          splitLayout(
                                            selectInput("IDloc_colnm", "Site ID", choices = NULL), #needs to be distinct from ID id above
                                            selectInput("lat_colnm", "Latitude column", choices = NULL),
-                                           selectInput("long_colnm", "Longitude column", choices = NULL),
-                                           actionButton("locselect", "Update Location DataTable")
+                                           selectInput("long_colnm", "Longitude column", choices = NULL)
+                                           
                                          ),
-                                hr(),
-                               
-                               #datatable stream T data 
-                               DT::dataTableOutput("user_dataavail"),
-                               #datatable location data 
-                               DT::dataTableOutput("user_dataloc"),
                                 
-                               hr(),
-                                           ##Air Temperature Inputs
-                                         h4("3: Add Air Temperature Data (currently only daymet data option)"),
-                                         actionButton("daymet_select", "Use Daymet Air Temperature Data"),
+                                        actionButton("locselect", "Update Location DataTable"),
+                                        DT::dataTableOutput("user_dataavail"),
+                            
+                                hr()
+                            ),
+                            
+                            #--------------------------------------------------#
+                            # Box 3 for Air and Final Run
+                            #--------------------------------------------
+                            box(title = "Step 3: Air Temperature Data", width = 4, status = "primary",
+                            
+                                      
+                                      ##Air Temperature Inputs
+                                      h4("3: Add Air Temperature Data (currently only daymet data option)"),
+                                      actionButton("daymet_select", "Use Daymet Air Temperature Data"),
+                                      
+                                      hr(),
+                                      DT::dataTableOutput("user_dataair"),
+                                      
+                                      h4("Optional: Output combined stream temperature and air temperature dataframe"),
+                                      downloadButton("downloadInputdata", "Download Input DataTable"),
+                                      
+                                      hr(),
+                                      
+                                      h4("6: Run the analysis!"),
+                                      actionButton("calc_metric_u", "Calculate Thermal Metrics",
+                                                   style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
+                                      hr()
+                            )
+                            ),
                                
-                               hr(),
-                               DT::dataTableOutput("user_dataair"),
-            
-                                         h4("Optional: Output combined stream temperature and air temperature dataframe"),
-                                           downloadButton("downloadInputdata", "Download Input DataTable"),
-                                          
-                                        hr(),
-                                          
-                                         h4("6: Calculate Thermal Metrics"),
-                                           actionButton("calc_metric_u", "Calculate Thermal Metrics",
-                                                        style="color: #fff; background-color: #FF0000; border-color: #2e6da4"),
-                                           br()
+                            #----------------------------------#
+                            #Output Data Tables for visualization#
+                            #----------------------------------
+                            fluidRow(
+                              #in reverse order so they are replaced as data is added to
+                              #datatable stream T data 
+                              #datatable location data 
+                              DT::dataTableOutput("user_dataloc"),
+                              DT::dataTableOutput("user_datainput")
+  
+                            )
+                                
+                               
                     
                                
                                           #### To add option for user air. 
@@ -122,18 +158,12 @@ ui <- fluidPage(
                                                        # checkboxInput("air_included", "Calculate using user input Air Temperature"),
                                                        # fileInput("upload_air", NULL)
                                                        
-                                  )#end column
-   
+                   
 
                              
             ), #end messy user input - tabpanel 
+
                               
-        tabPanel("Cleaned Data Input Files",
-                 fileInput("upload_water", "Upload Clean Dataframe as csv"),
-                 checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
-                 #DT::dataTableOutput("user_dataair")
-        ),
-        
         tabPanel("Thermal Metric Results",
                                         #themal metrics dataframe for each year of analysis
                                         DT::dataTableOutput("user_dataTM"),
@@ -141,7 +171,15 @@ ui <- fluidPage(
                                         DT::dataTableOutput("user_yearlyTM"),
                                         downloadButton("download_user_yearlyTM", "Download Yearly Thermal Metric DataTable")
                                         
-                               )
+                               ),# end results panel
+        
+        
+        tabPanel("Plots",
+                 #fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                 #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                 plotOutput("Temperature_plot", click = "plot_click")
+                 #DT::dataTableOutput("user_dataair")
+                )#end plots panel
                  
 
             )#end user defined tab panel
@@ -149,7 +187,7 @@ ui <- fluidPage(
         
         
             )
-        )#NavPage
+         )#NavPage
   )#end fluidpage
 
 
@@ -204,7 +242,7 @@ server <- function(input, output, session) {
   sTem_df <- eventReactive(input$colselect, {
     df <- user_data()%>% #[,input$user_datainput_columns_selected] 
       rename("site_id" = input$ID_colnm , "date_raw" = input$date_colnm, "T_stream"  = input$T_colnm)%>%
-      mutate(date = as.Date(date_raw, format = input$date_format, tryFormats = c("%m/%d/%Y")),
+      mutate(date = as.Date(date_raw, format = input$date_format),
              site_id = as.factor(site_id)) %>%
       dplyr::select(site_id, date, T_stream, date_raw)%>%
       group_by(site_id) %>%
@@ -366,7 +404,7 @@ server <- function(input, output, session) {
   ### conduct thermal analysis
   TM_data <- eventReactive(input$calc_metric_u,{
     #conduct therm analysis 
-    therm_analysis(Tem_df())#, loc_df())    
+    left_join(therm_analysis(Tem_df()), data_gap_check(Tem_df()), by = "site_id")  
   })
   
   ### conduct yearly thermal analysis
@@ -375,12 +413,13 @@ server <- function(input, output, session) {
     T.yl <- lapply(levels(T.y$year_water), function(x){
       
       df.y <- T.y %>%
-        filter(year_water == x)%>%
-        (therm_analysis(.))#, data_gap_check(.), by = "site_id")
+        filter(year_water == x)#%>%
+        
+      df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
       
-      df.y$year <- x # add water year as a value in table
+      df.j$year <- x # add water year as a valuBe in table
       
-      df.y#return dataframe
+      df.j#return dataframe
     })
     
     #names(T.yl) <- levels(T.y$year_water)
@@ -389,11 +428,16 @@ server <- function(input, output, session) {
     
   })
   
-  #output lthermal metric table
-  output$user_dataTM <-DT::renderDataTable(
-    TM_data(), server = FALSE, selection = list(target = 'column'),
-    caption = 'Thermal Metrics DataTable'
-  )
+  #output thermal metric table
+  output$user_dataTM <-DT::renderDataTable({
+    datatable(TM_data()) %>% 
+      formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+        backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+      formatStyle(c('TS__Slope', "AdjRsqr"),
+        backgroundColor = 'lightblue') %>%
+    formatStyle(c("max_conseq_missing_days"),
+                backgroundColor = styleInterval(49, c('white', 'orange'))) 
+  })
   
   ##Download Thermal Metric Output Table 
   output$download_user_dataTM <- downloadHandler(
@@ -406,9 +450,15 @@ server <- function(input, output, session) {
   )
   
   #output thermal metric table by year (seperate tab)
-  output$user_yearlyTM <- DT::renderDataTable(
-    TM_data_byyear(), server = FALSE, selection = list(target = 'column')
-  )
+  output$user_yearlyTM <- DT::renderDataTable({
+     datatable(TM_data_byyear()) %>% 
+      formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+                  backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+      formatStyle(c('TS__Slope', "AdjRsqr"),
+                  backgroundColor = 'lightblue') %>%
+      formatStyle(c("max_conseq_missing_days"),
+                  backgroundColor = styleInterval(49, c('white', 'orange'))) 
+  })
   
   
   ##Download Yearly Metric Output Table 
@@ -423,6 +473,41 @@ server <- function(input, output, session) {
   
   
 }
+
+#######
+#------Plots
+  
+  output$Temperature_plot <-renderPlot({
+    df_temp_l <- df_Tem %>%
+      group_split(., site_id) %>% 
+      setNames(unique(df_Tem$site_id)) 
+    
+    sin_fit_coef <- lapply(names(df_temp_l), function(x){
+        fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_air_C"]) %>%
+        mutate(site_id = x)} #add column with site_id as it is droped in the lapply process
+        ) %>%
+        do.call("rbind", .)#make dataframe
+      
+    p <- ggplot(Tem_df(),#(), 
+                aes(x = date, y = tavg_wat_C, color =site_id)) + 
+              geom_point(colour='red')+
+              geom_line(aes(x = date, y = ))
+      xlab("Date")+
+      ylab("Water Temperature (C)")+
+      theme_bw()
+    
+    ggplotly(p)
+    
+    },
+    height = 400,width = 600)
+
+# output$TM_plot_y<-renderPlot({
+#   ggplot(TM_data_byyear(),aes(x=date,y=num, colour = site_id))+
+#     geom_point(colour='red')
+#   },
+#   height = 400,width = 600)
+
+
 
 
 shinyApp(ui, server)

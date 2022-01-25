@@ -6,9 +6,9 @@ library(lubridate)
 
 data_gap_check <- function(df){
   #df <- Tem_df#bebuggg remove
-  df <- T.y
+  #df <- T.y
   df <- na.omit(df) %>%
-    filter(tavg_wat_C < 70 & tavg_wat_C  > 1) #removing weird values and freezing values
+    filter(tavg_wat_C < 70) #removing weird values
   
   df_l <- lapply(unique(df$site_id), function(x){
                 #
@@ -19,7 +19,7 @@ data_gap_check <- function(df){
                 
                 val <- as.numeric(max(df.x$datediff, na.rm = TRUE))
                 
-                df.y <- data.frame("site_id" = as.character(x),"max_missing_days" = val)
+                df.y <- data.frame("site_id" = as.character(x),"max_conseq_missing_days" = val)
               }
       
         )#end lapply
@@ -30,15 +30,33 @@ data_gap_check <- function(df){
 
 
 
-
-
 ## ----------- Calcuate radian date from date------ ##
 rad_day <- function(x){ #input date vector
-  d <- yday(as.POSIXct(x))
+  d <- yday(as.POSIXct(x, format="%Y-%m-%d"))
                
   rad_d <- 2*pi*d/365
   return(rad_d)
 }
+
+# #output sin fit 
+# TAS_sin_fit <- lapply(names(df_temp_l), function(df_temp_l){
+#   # df_temp_l[[x]] %>%
+#   #   mutate(radian_day = rad_day(.[,"Date"]))
+#   
+#   Tair_fit <- fit_TAS(df_temp_l[[site_id]][,"date"], df_temp_l[[site_id]][,"tavg_air_C"])
+#   Tair_fit$medium <- "air"
+#   Twat_fit <- fit_TAS(df_temp_l[[site_id]][,"date"], df_temp_l[[site_id]][,"tavg_wat_C"])
+#   Twat_fit$medium <- "water"
+#   
+#   #combine the water and air fits into one dataframe
+#   T_sin_fit <- rbind(Tair_fit, Twat_fit)
+#   T_sin_fit$site_id <- x
+#   
+#   return(T_sin_fit)
+# }
+# )
+
+
 
 #TAS: Temperature Annual Signal
 #can be used for air temp and surface water temperature extraction of annual signal 

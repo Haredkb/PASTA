@@ -50,7 +50,6 @@ therm_analysis <- function(df_tem){#, df_loc){
   
   ### ADD IN MAKING SURE ITS DAILY TIME STEPS
   
-  
   ### Add in sepate function 
   # df_loc <- df_loc %>%
   #   rename("site_id" =1, "lat" =2 , "long"=3, "start.date" = 4, "end.date" = 5)%>%
