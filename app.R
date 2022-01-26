@@ -472,40 +472,44 @@ server <- function(input, output, session) {
   #------Plots
   
 p_df <- reactive({
-    df_temp_l <- Tem_df() %>%
+    df_temp_l <- Tem_df()%>% #Tem_df() %>%
       group_by(site_id, .add = TRUE) %>%
       group_split(.) %>%
       setNames(unique(Tem_df()$site_id))
     
-    sin_wfit_coef <- lapply(names(df_temp_l), function(x){
-      fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"]) %>%
-        mutate(site_id = x) #add column with site_id as it is droped in the lapply process
-    }
-    ) %>%
-      do.call("rbind", .)#make dataframe for sin coefficients
+    saveRDS(df_temp_l, "df_temp_l.RDS")
     
+    sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+      y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+      z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
+      })%>% 
+      do.call("rbind", .)#make dataframe for sin coefficients
+       
+    saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
+    saveRDS(Tem_df(), "Tem_df_r.RDS")
     #data
-    sin_wfit <- lapply(unique(Tem_df()$site_id), function(x){
-      #this is redundant need to make a single function within annual signal functions 
       p_df <- Tem_df() %>%
-        filter(.$site_id ==x) %>%
-        mutate(sin_fit_w = (sin_wfit_coef$sinSlope * sin(rad_day(.$date))) + (sin_wfit_coef$cosSlope * cos(rad_day(.$date))) + sin_wfit_coef$YInt,
-               site_id = x)
-    })%>%
-      do.call("rbind", .) #make a dataframe
+        left_join(., sin_wfit_coef, by = "site_id") %>%
+        mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+    
+    #print(p_df)
+    saveRDS(p_df, "p_df.RDS")
+    p_df
 })
     
 output$plot_tempdata <-renderPlotly({
-      ggplotly(
-        ggplot(p_df()) +
-        geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
-        geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
-        geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
-        ggtitle("test")+
-        xlab("Date")+
-        ylab("Water Temperature (C)")+
-        theme_bw()
-      )
+        p <- ggplot(p_df()) +
+                  geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
+                  geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
+                  geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
+                  ggtitle("test")+
+                  xlab("Date")+
+                  ylab("Water Temperature (C)")+
+                  theme_bw()+
+                    facet_grid(~site_id) #rows = vars(site_id))
+        
+        ggplotly(p)
+      
     })
     
 }
