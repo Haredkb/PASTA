@@ -177,17 +177,15 @@ ui <- fluidPage(
         tabPanel("Plots",
                  #fileInput("upload_water", "Upload Clean Dataframe as csv"),
                  #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
-                 plotOutput("Temperature_plot", click = "plot_click")
+                 plotlyOutput("plot_tempdata")
                  #DT::dataTableOutput("user_dataair")
                 )#end plots panel
                  
 
-            )#end user defined tab panel
+            )#end tabset panel
         ##########################################
-        
-        
-            )
-         )#NavPage
+        )#End User Tab
+    )#NavPage
   )#end fluidpage
 
 
@@ -470,44 +468,46 @@ server <- function(input, output, session) {
       write.csv(TM_data_byyear(), file, row.names = FALSE)
     }
   )
+  #######
+  #------Plots
   
-  
+p_df <- reactive({
+    df_temp_l <- Tem_df() %>%
+      group_by(site_id, .add = TRUE) %>%
+      group_split(.) %>%
+      setNames(unique(Tem_df()$site_id))
+    
+    sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+      fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"]) %>%
+        mutate(site_id = x) #add column with site_id as it is droped in the lapply process
+    }
+    ) %>%
+      do.call("rbind", .)#make dataframe for sin coefficients
+    
+    #data
+    sin_wfit <- lapply(unique(Tem_df()$site_id), function(x){
+      #this is redundant need to make a single function within annual signal functions 
+      p_df <- Tem_df() %>%
+        filter(.$site_id ==x) %>%
+        mutate(sin_fit_w = (sin_wfit_coef$sinSlope * sin(rad_day(.$date))) + (sin_wfit_coef$cosSlope * cos(rad_day(.$date))) + sin_wfit_coef$YInt,
+               site_id = x)
+    })%>%
+      do.call("rbind", .) #make a dataframe
+})
+    
+output$plot_tempdata <-renderPlotly({
+      ggplotly(
+        ggplot(p_df()) +
+        geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
+        geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
+        geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
+        ggtitle("test")+
+        xlab("Date")+
+        ylab("Water Temperature (C)")+
+        theme_bw()
+      )
+    })
+    
 }
-
-#######
-#------Plots
-  
-  output$Temperature_plot <-renderPlot({
-    df_temp_l <- df_Tem %>%
-      group_split(., site_id) %>% 
-      setNames(unique(df_Tem$site_id)) 
-    
-    sin_fit_coef <- lapply(names(df_temp_l), function(x){
-        fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_air_C"]) %>%
-        mutate(site_id = x)} #add column with site_id as it is droped in the lapply process
-        ) %>%
-        do.call("rbind", .)#make dataframe
-      
-    p <- ggplot(Tem_df(),#(), 
-                aes(x = date, y = tavg_wat_C, color =site_id)) + 
-              geom_point(colour='red')+
-              geom_line(aes(x = date, y = ))
-      xlab("Date")+
-      ylab("Water Temperature (C)")+
-      theme_bw()
-    
-    ggplotly(p)
-    
-    },
-    height = 400,width = 600)
-
-# output$TM_plot_y<-renderPlot({
-#   ggplot(TM_data_byyear(),aes(x=date,y=num, colour = site_id))+
-#     geom_point(colour='red')
-#   },
-#   height = 400,width = 600)
-
-
-
 
 shinyApp(ui, server)

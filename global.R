@@ -14,6 +14,7 @@ suppressPackageStartupMessages({
   #library(shinycssloaders)
   # library(shinyWidgets)
   library(plotly)
+  library(ggplot2)
   #library(dygraphs)
   
   

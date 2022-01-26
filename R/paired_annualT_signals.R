@@ -1,5 +1,7 @@
 ## Annual Signal Functions
 library(lubridate)
+library(tidyverse)
+library(smwrBase)
 ## ----------- Heed the Data Gaps -----------------##
 ## Assess the data inputs for missing data or incorrect data (values >100) ##
 ## Based on Johson 2021 analysis 
@@ -31,9 +33,29 @@ data_gap_check <- function(df){
 
 
 ## ----------- Calcuate radian date from date------ ##
-rad_day <- function(x){ #input date vector
+rad_day <- function(x, yr_type){ #input date vector
+
+  
+  if(missing(yr_type)){
+    yr_type <- "water" #use water year unless calendar is specified
+  }
+  
+  # #calendar year
+  if(yr_type == "calendar"){
   d <- yday(as.POSIXct(x, format="%Y-%m-%d"))
-               
+  
+  } else { #use water year 
+  wtr_yr <- as.numeric(as.character(waterYear(as.POSIXct(x, format="%Y-%m-%d")))) #to convert factor to numeric must convert first to character
+  d <- as.Date(x, format="%Y-%m-%d")
+  d_df <- data.frame(wtr_yr, d)
+               #https://stackoverflow.com/questions/48123049/create-day-index-based-on-water-year
+  wtr_df <- d_df %>%
+                 group_by(wtr_yr) %>% 
+                 mutate(wtr_day = as.numeric(difftime(d, ymd(paste0(wtr_yr - 1 ,'-09-30')), units = "days")))
+  
+  d <- wtr_df$wtr_day
+  }
+  
   rad_d <- 2*pi*d/365
   return(rad_d)
 }
