@@ -40,7 +40,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                                           start = as.Date("2010-10-01"),
                                           end   = as.Date("2015-09-30"),
                                           min    = as.Date("2005-01-01"),#("1980-01-01"),
-                                          max    = as.Date("2019-12-30")),
+                                          max    = as.Date("2020-12-30")),
                            
                            actionButton(
                              inputId = ns("searchsites"),

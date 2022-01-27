@@ -12,9 +12,10 @@ suppressPackageStartupMessages({
   library(timetk)
   library(shinydashboard)
   #library(shinycssloaders)
-  # library(shinyWidgets)
+  library(shinyWidgets)
   library(plotly)
   library(ggplot2)
+  library(viridis)
   #library(dygraphs)
   
   

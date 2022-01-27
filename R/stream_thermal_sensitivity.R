@@ -15,8 +15,6 @@ fit_ThermalSens <- function(date, a_temp, w_temp, y){
   
   rownames(df)<-NULL
     
-  
-  saveRDS(df, "TS_df_test.RDS")
   #do not know why it is a list NWIS does not throw these errors...
   
   #daily or weekly averages

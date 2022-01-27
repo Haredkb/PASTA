@@ -106,7 +106,7 @@ therm_analysis <- function(df_tem){#, df_loc){
         
         ##Calculate Amp Ratio and Phase Lag
         TAS_metrics <- do.call("rbind", TAS_sin_fit) %>%
-          group_by(site_id) %>%
+          group_by(site_id) %>% #last is water first is air 
           summarize(AmpRatio = round(last(amplitude_C)/first(amplitude_C),2),
                     PhaseLag_d = round(last(phase_d) - first(phase_d),2),
                     Ratio_Mean = round(last(YInt) / first(YInt),2))
@@ -117,7 +117,7 @@ therm_analysis <- function(df_tem){#, df_loc){
         ########## Mergeing all Metric Analyses together #################
         
         
-        Metric_Output <- left_join(TAS_metrics, TS_metrics[,c(1,2,5)], 
+        Metric_Output <- left_join(TAS_metrics, TS_metrics[,c(1,2,4,5)], #TS_slope, Rsq, Yint, and Site_id
                                                by = "site_id") #%>%
         #do in a seperate analysis                   
         #left_join(., df_loc, by = "site_id")
