@@ -61,9 +61,9 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            checkboxInput(ns("bfi"), "Include Baseflow Index?", value = FALSE),# as.factor(parameter$parameter_nm)),
 
                            ##add action button so thermal parameter run only happens after user is ready
-                           actionButton(
-                             inputId = ns("gobutton"),
-                             label = "Calculate Metrics"),
+                           actionButton(inputId = ns("gobutton"),label = "Calculate Thermal Metrics",
+                                        style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
+                           
                            
                            ##move the progress bar
                            tags$head(tags$style(
