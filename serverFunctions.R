@@ -1,4 +1,354 @@
 ### Server Functions
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                             envCan SERVER                             ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+envCanServer <- function(id) {
+  moduleServer(
+    id,
+    ## Below is the module function
+    function(input, output, session) {
+      
+    #Define Stations to choose
+      stations_df <- reactive({
+        getEnvCanStations()
+      })
+      
+    
+    #Export Station Bounding Box
+      stations_bb <- reactive({
+        bounds <- input$dataavailmap_bounds
+        #bounds <- as.numeric(bounds)
+        bbox_in<- c(round(bounds$west,2), round(bounds$south,2), round(bounds$east,2), round(bounds$north,2))
+
+        stations_df() %>% #WILL ONLY WORK FOR NORTH AND WESTERN HEMPISPHERE( but as this module is canada data is fine)
+        filter(between(LATITUDE, bbox_in[2], bbox_in[4])) %>%
+        filter(between(LONGITUDE, bbox_in[1], bbox_in[2]))
+      })
+      
+    
+    #   
+    #   #################################################################
+    #   ##                   Chosing Input type nwis                   ##
+    #   #################################################################
+    #   #-----------------------------------------------#
+    #   #       Map Extent vs. State Selection          #
+    #   #-----------------------------------------------#
+      Tem_df <-  eventReactive(input$getData, {
+        if(input$mapextent == TRUE){
+          #extract map bounds
+          bounds <- input$dataavailmap_bounds
+          print(bounds)
+          print(class(bounds))
+          #bounds <- as.numeric(bounds)
+          bbox_in<- c(round(bounds$west,2), round(bounds$south,2), round(bounds$east,2), round(bounds$north,2))
+          print(bbox_in)
+
+          #print the Area within the sidebar
+          output$AOI <- renderText({ bbox_in })
+          show_modal_spinner() # show the modal window
+          
+          #Bounding Box too large [13.3x3.6 degrees]. Your requested width must be less than or equal to  8.4 degrees at latitude 33.6 with requested height of 3.6 degrees.
+
+          #------Use Bounding Box to define NWIS data pull---------------------#
+
+
+            df <- getEnvCanData(unique(stations_bb()$STATION_NO))
+
+
+          #------Use station input data pull---------------------#
+
+        } else{ #if bounding box is not checked will use state input
+
+          df <- getEnvCanData(input$station)
+        }
+        
+      
+      #get Daymet Data too 
+      if(input$mapextent == TRUE){
+          loc_df <- stations_df()%>%
+            filter(unique(stations_bb()$STATION_NO))}
+      else{
+            loc_df <- stations_df()%>%
+              dplyr::rename(site_id = STATION_NO)%>%
+              dplyr::filter(site_id %in% input$station)
+      }
+        
+        loc_df <-loc_df[!duplicated(loc_df$site_id),]
+        
+        loc_df <- loc_df %>%
+          dplyr::select(site_id, LATITUDE, LONGITUDE)%>%
+          mutate(start = min(df$date),
+                 end = max(df$date))
+        
+        #run batch collection from daymet
+        aTem <- batch_daymet_u(loc_df)
+        #clean data and pull out avgdaily air temperature 
+        aTem <- clean_daymet(aTem)%>%
+          dplyr::select(site_id, date, tavg_air_C)
+        
+        remove_modal_spinner()
+        
+        output <- left_join(df, aTem, by = c("site_id", "date"))%>%
+          na.omit()
+        
+        output
+      })
+      
+    #
+    #   #Create Table - use this to select sites to analyze
+      output$site_table <- renderDataTable({
+        Tem_df()
+      })
+      
+    #   
+    #   
+    #   #------------------------------------------------------------------------#
+    #   #### Map for exploratory analysis of the data available for each state####
+    #   #========================================================================#
+    #   
+      #Create points for plotting
+      points_explore <- reactive({
+        df <- stations_df()%>%
+          dplyr::select(LATITUDE, LONGITUDE, STATION_NO, STATION_NAME)%>%#create simple dataframe with lat and long first #THIS IS LONG AND WHEN DATA IS DOWNLOADED ITS LON (?)
+          rename("lat" = LATITUDE, "lng" = LONGITUDE)
+      })
+
+      ##Create the output map with the available stream temperature data
+      output$dataavailmap <- renderLeaflet({
+        lat_min <- min(points_explore()$lat)
+        lat_max <- max(points_explore()$lat)
+        lng_min <- min(points_explore()$lng)
+        lng_max <- max(points_explore()$lng)
+        
+        leaflet(options = leafletOptions(zoomSnap = 0.25, zoomDelta=0.25)) %>%
+          addTiles() %>%
+          addCircleMarkers(data = points_explore(), 
+                           label = paste(points_explore()$STATION_NO, "//", points_explore()$STATION_NAME)) #make a false point so the zoom works when adding points
+
+      })
+    
+    # #   
+    #   observeEvent(input$searchsites, {
+    # 
+    #     leafletProxy("dataavailmap")   %>%
+    #       clearShapes() %>%
+    #       #clearBounds() %>%
+    #       clearMarkers()%>%
+    #       addCircleMarkers(data = points_explore(), label = c(points_explore()$STATION_NO, points_explore()$STATION_NAME) %>%
+    #       fitBounds(lat1 = lat_min, lat2 = lat_max, lng1 = lng_min, lng2 = lng_max))
+    #   })
+    
+    #   
+    #   ##highlights points based on user selected rows
+    #   observeEvent(input$site_table_rows_selected, {
+    #     row_selected = points_explore()[input$site_table_rows_selected,]
+    #     proxy <- leafletProxy("dataavailmap")
+    #     print(row_selected)
+    #     proxy %>%
+    #       addCircleMarkers(#popup=as.character(row_selected$mag),
+    #         #layerId = as.character(row_selected$id),
+    #         lng=row_selected$lng, 
+    #         lat=row_selected$lat,
+    #         color = "red",
+    #         label = row_selected$site_no
+    #         #icon = 
+    #       )
+    #   })
+    #   
+    #   
+    #   # ##change view to resutls panel
+    #   # observeEvent(input$gobutton, {
+    #   #   updateTabsetPanel(session, "nwis_calc", #id of tabset in ui, 
+    #   #                     selected = "Results: Metric Table and Plots")
+    #   # })
+    #   
+      #++++++++++++++++++++++++++++++++++++++++#
+      ######## conduct thermal analysis ########
+      #++++++++++++++++++++++++++++++++++++++++#
+
+      TM_data <- eventReactive(
+        #rerun when button is pressed
+        input$gobutton,{ #https://stackoverflow.com/questions/46521026/r-shiny-action-button-and-data-table-output
+
+          # progress <- shiny::Progress$new()
+          # # Make sure it closes when we exit this reactive, even if there's an error
+          # on.exit(progress$close())
+          # progress$set(message = "Calculating Metric Values", value = 0)
+
+          #Calculate Yearly
+          T.y <- add_waterYear(Tem_df())
+          T.yl <- lapply(levels(T.y$year_water), function(x){
+
+            df.y <- T.y %>%
+              filter(year_water == x)#%>%
+
+            df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
+
+            df.j$year <- x # add water year as a valuBe in table
+
+            df.j#return dataframe
+          })
+
+          #names(T.yl) <- levels(T.y$year_water)
+          #conduct therm analysis
+          df <- do.call(rbind.data.frame, T.yl)#return single dataframe
+          })
+
+      # Create output table
+      output$metric_table <-DT::renderDT({
+        datatable(TM_data()) %>% formatStyle(
+          c('AmpRatio', "PhaseLag_d"),
+          backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced
+          formatStyle(
+            c('TS__Slope', "AdjRsqr"),
+            backgroundColor = 'lightblue')
+
+      })
+
+      ##Download Metric Output Table
+      output$downloadData <- downloadHandler(
+        filename = function() {
+          paste("ThermalMetrics_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(TM_data(), file, row.names = FALSE)
+        }
+      )
+    #
+      
+      ###########################'
+      ###########################'
+      ##      PLOTS #############'
+      ###########################'
+      ###########################'
+      
+      #######
+      #------Plots
+      
+      p_df <- reactive({
+        df_temp_l <- Tem_df()%>% #Tem_df() %>%
+          split(f = as.factor(.$site_id))
+        # group_by(site_id, .add = TRUE) %>%
+        # group_split(.) 
+        
+        saveRDS(df_temp_l, "df_temp_l_envC.RDS")
+        
+        sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+          y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+          z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
+        })%>% 
+          do.call("rbind", .)#make dataframe for sin coefficients
+        
+        saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
+        saveRDS(Tem_df(), "Tem_df_r.RDS")
+        saveRDS(TM_data(),  "TM_data_envC.RDS")
+        #data
+        p_df <- Tem_df() %>%
+          left_join(., sin_wfit_coef, by = "site_id") %>%
+          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+        
+        #print(p_df)
+        saveRDS(p_df, "p_df.RDS")
+        p_df
+      })
+      
+      output$plot_tempdata <-renderPlotly({
+        p <- ggplot(p_df()) +
+          geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
+          geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
+          geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
+          #ggtitle("test")+
+          xlab("Date")+
+          ylab("Water Temperature (C)")+
+          theme_bw()+
+          facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+        
+        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
+        
+        ggplotly(p, height = rows)
+        
+      })
+      
+      
+      output$plot_TS <-renderPlotly({
+        p <- p_df() %>%
+          filter(tavg_wat_C > 1)%>%
+          ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
+          geom_point()+
+          stat_smooth(method = "lm", col = "red")+
+          geom_abline(slope = 1, intercept = 0)+
+          annotate(geom = "text", x = 1, y = 5, label = "1:1", color = "black",
+                   angle = 1)+
+          #ggtitle("test")+
+          scale_color_viridis(discrete=TRUE)+
+          labs(x = "Air Temperature (C)", y= "Water Temperature (C)", colour="Year")+
+          xlim(0, NA)+
+          theme_bw()+
+          facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+        
+        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
+        
+        ggplotly(p, height = rows)
+        
+      })
+      
+      output$plot_TAS <-renderPlotly({
+        p <- ggplot() +
+          geom_point(data = TM_data(), aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
+          #ggtitle("test")+
+          #scale_shape_manual(values=seq(0,15))+
+          scale_color_viridis(discrete=TRUE, option = "turbo")+
+          labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
+          ylim(0,1.2)+
+          theme_bw()
+        
+        ggplotly(p, height = 600)
+        
+      })
+      
+      
+    #   
+    #   
+    #   ##############
+    #   ###MAP DATA###
+    #   ##############
+    #   #dont want to have to press button to update map points - so just reactive not event reactive
+    #   points <- reactive({
+    #     df <- data()%>%
+    #       dplyr::select(LATITUDE, LONGITUDE, site_id)%>%#create simple dataframe with lat and long first
+    #       rename("lat" = LATITUDE, "lng" = LONGITUDE)
+    #   })
+    #   
+    #   
+    #   output$metricmap <- renderLeaflet({
+    #     leaflet() %>%
+    #       addTiles() %>%
+    #       #addProviderTiles("Esri.WorldImagery", group = "Esri.WorldImagery") %>%
+    #       addCircleMarkers(data = points(), label = points()$site_id) 
+    #     #addLayersControl(baseGroups = c(as.character(providers$Stamen.TonerLite), "Esri.WorldImagery"))
+    #   })
+    #   
+    #   ##attempt at highlighting points selected rows
+    #   observeEvent(input$metric_table_rows_selected, {
+    #     row_selected = points()[input$metric_table_rows_selected,]
+    #     proxy <- leafletProxy("metricmap")
+    #     print(row_selected)
+    #     proxy %>%
+    #       addCircleMarkers(#popup=as.character(row_selected$mag),
+    #         #layerId = as.character(row_selected$id),
+    #         lng=row_selected$lng, 
+    #         lat=row_selected$lat,
+    #         color = "red", label = row_selected$site_id
+    #         #icon = 
+    #       )
+    #   })
+    }
+  )#end module server
+}#end enCanServer
 
 ###########################################################################
 ###########################################################################
@@ -249,221 +599,3 @@ nwisServer <- function(id) {
     }
     )#end module server
   }#end nwisServer
-
-###########################################################################
-###########################################################################
-###                                                                     ###
-###                             User-Defined SERVER                     ###
-###                                                                     ###
-###########################################################################
-###########################################################################
-# 
-# userDefinedServer <- function(id) {
-#   moduleServer(
-#     id,
-# 
-#     ## Below is the module function
-#     function(input, output, session) {
-#       user_data <-  eventReactive(input$upload_water, {
-#         # input$file1 will be NULL initially. After the user selects
-#         # and uploads a file, it will be a data frame with 'name',
-#         # 'size', 'type', and 'datapath' columns. The 'datapath'
-#         # column will contain the local filenames where the data can
-#         # be found.
-#         inFile <- input$upload_water
-#         
-#         if (is.null(inFile))
-#           return(NULL)
-#         
-#         read.csv(inFile$datapath, skip = input$colnm_row -1)
-#       }
-#       )
-#       
-#       
-#       #create initial dataframe for column selection 
-#       output$user_datainput <-DT::renderDataTable(
-#         user_data(), server = FALSE, selection = list(target = 'column'),
-#         caption = 'Original Input Data Table'
-#       )
-#       
-#       #update column name selection based on user column select
-#       colnm_input <- c("T_colnm", "ID_colnm", "date_colnm")
-#       
-#       #update all the colnames choices for user to select correct match
-#       observe(lapply(colnm_input, function(x){
-#         updateSelectInput(session, x,
-#                           #label = paste("Select input label", length(x)),
-#                           choices = names(user_data())#,#[,input$user_datainput_columns_selected]),#therefore columns dont need to be selected
-#                           #selected = tail(x, 1)
-#         )
-#       }
-#       )#end lapply
-#       )#end observe 
-#       
-#       #Update stream temperature (sTem) dataframe to clean consistent format
-#       sTem_df <- eventReactive(input$colselect, {
-#         df <- user_data()%>% #[,input$user_datainput_columns_selected] 
-#           rename("site_id" = input$ID_colnm , "date_raw" = input$date_colnm, "T_stream"  = input$T_colnm)%>%
-#           mutate(date = as.Date(date_raw, format = input$date_format, tryFormats = c("%m/%d/%Y"))) %>%
-#           dplyr::select(site_id, date, T_stream, date_raw)%>%
-#           group_by(site_id) %>%
-#           timetk::summarise_by_time( #for daily time steps from hourly.
-#             .date_var = date,
-#             .by       = "day", # Setup for monthly aggregation
-#             # Summarization
-#             tavg_wat_C = mean(T_stream)
-#           )
-#         #### Making sure input in in Celsius or converts it
-#         #using radio buttons
-#         sTem_units <- switch(input$temp_unit,
-#                              cel = function(x){ #this seems silly, but want it as a option
-#                                x * 1 
-#                              },
-#                              fhr = function(x){
-#                                ((x-32) * (5/9))
-#                              },
-#                              kel = function(x){
-#                                x - 273.15 
-#                              })
-#         
-#         #convert the input temperature values to celisus 
-#         df$tavg_wat_C <- sTem_units(df$tavg_wat_C)
-#         
-#         df
-#       })
-#       
-#       # show updated table based on column selected
-#       observeEvent(input$colselect, { #stream temperature df = sT_df
-#         #output new table with colums
-#         output$user_datainput <-DT::renderDataTable(
-#           sTem_df(), server = FALSE, selection = list(target = 'column'),
-#           caption = 'Updated Input Data Table')
-#       })
-#       
-#       ######################################################
-#       #### Recover Geo data for Daymet and Plotting Purposes
-#       #read datatable
-#       user_loc <-  eventReactive(input$upload_loc, {
-#         # input$file1 will be NULL initially. After the user selects
-#         # and uploads a file, it will be a data frame with 'name',
-#         # 'size', 'type', and 'datapath' columns. The 'datapath'
-#         # column will contain the local filenames where the data can
-#         # be found.
-#         inFile <- input$upload_loc
-#         
-#         if (is.null(inFile))
-#           return(NULL)
-#         
-#         read.csv(inFile$datapath)
-#       }
-#       )
-#       
-#       #create initial dataframe for column selection 
-#       output$user_dataloc <- DT::renderDataTable(
-#         user_loc(), server = FALSE, selection = list(target = 'column'),
-#         caption = 'Original Input Data Table'
-#       )
-#       
-#       #update column name selection based on user column select
-#       colnm_locinput <- c("lat_colnm", "IDloc_colnm", "long_colnm")
-#       
-#       #update all the colnames choices for user to select correct match
-#       observe(lapply(colnm_locinput, function(x){
-#         updateSelectInput(session, x,
-#                           #label = paste("Select input label", length(x)),
-#                           choices = names(user_loc())#all column name (so dont need to column select)
-#         )
-#       }
-#       )#end lapply
-#       )#end reactive
-#       
-#       ###Create Reactive clean consistent Datatable for location inputs
-#       sLoc_df <- eventReactive(input$locselect, {
-#         user_loc() %>%
-#           rename("site_id" = input$IDloc_colnm , "lat" = input$lat_colnm, "long" = input$long_colnm)%>%
-#           dplyr::select("site_id", "lat", "long") #to get column order correct and drop unused columns
-#       })
-#       
-#       # show updated table based on column selected
-#       observeEvent(input$locselect, { #stream temperature df = sT_df
-#         #output new table with colums
-#         output$user_dataloc <-DT::renderDataTable(
-#           sLoc_df(), server = FALSE, selection = list(target = 'column'),
-#           caption = 'Updated Input Data Table')
-#         
-#       }) #end ObserveEvent
-#       
-#       
-#       #####################################################
-#       ###       Join data for air combination 
-#       ######################################3
-#       
-#       ### add start and end date for each station id
-#       loc_df <- eventReactive(input$locselect, {
-#         sTem_df() %>%
-#           group_by(site_id)%>%
-#           summarise(start_date = min(date),
-#                     end_date = max(date))%>%
-#           inner_join(sLoc_df(), .)
-#       }) #end date_group reactive
-#       
-#       
-#       #output location table
-#       output$user_dataavail <-DT::renderDataTable(
-#         loc_df(), server = FALSE, selection = list(target = 'column'),
-#         caption = 'Joined Input Data Table'
-#       )
-#       
-#       
-#       ####Daymet Air collection 
-#       aTem_df <- eventReactive(input$daymet_select, { 
-#         #run batch collection from daymet
-#         aTem <- batch_daymet_u(loc_df())
-#         #clean data and pull out avgdaily air temperature 
-#         aTem <- clean_daymet(aTem)%>%
-#           dplyr::select(site_id, date, tavg_air_C)
-#         
-#         aTem
-#       })
-#       
-#       ####Join Air and Stream ### 
-#       ##dataframe temperature = Tem_df##
-#       Tem_df <- reactive({
-#         left_join(sTem_df(), aTem_df(), by = c("site_id", "date"))
-#       })
-#       
-#       #output table
-#       output$user_dataair <-DT::renderDataTable( #https://rstudio.github.io/DT/server.html for largr data
-#         head(Tem_df()), server = FALSE, selection = list(target = 'column'),
-#         caption = 'Daymet Raw Data Table'
-#       )
-#       
-#       
-#       
-#       ##Download Metric Output Table 
-#       output$downloadInputdata <- downloadHandler(
-#         filename = function() {
-#           paste("DataInput_UserData.csv")
-#         },
-#         content = function(file) {
-#           write.csv(Tem_df(), file, row.names = FALSE)
-#         }
-#       )
-#       
-#       
-#       ### conduct thermal analysis
-#       TM_data <- eventReactive(input$calc_metric_u,{
-#         #conduct therm analysis 
-#         therm_analysis(Tem_df(), loc_df())    
-#       })
-#       
-#       #output location table
-#       output$user_dataTM <-DT::renderDataTable(
-#         TM_data(), server = FALSE, selection = list(target = 'column'),
-#         caption = 'Thermal Metrics DataTable'
-#       )
-#     }#end user function
-#   )#end module server
-# }#end userDefinedServer
-      
-      

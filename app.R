@@ -1,5 +1,7 @@
 ##app
+
 source("global.R")
+
 
 #function for dynamic plotting
 #from: https://stackoverflow.com/questions/50914398/increase-plot-size-in-shiny-when-using-ggplot-facets
@@ -21,6 +23,11 @@ ui <- fluidPage(
              ),
              
         
+        ##------envCan----------#####
+            tabPanel("Environment Canada Data",
+                  envCanUI("envCanModule")
+                ),
+
         ##------User-defined Tab-------###########
              #To create a moduler from these data it would require much updating due to the mulitple "UpdateSelectInput" functionality
              #tabPanel("User Data",
@@ -214,8 +221,13 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   options(shiny.maxRequestSize=30*1024^2)#increase max upload size to 30MB
-  
+  ####
+  ####
+  #External Server
+  envCanServer("envCanModule")
   nwisServer("nwisModule")
+  
+  ### User Defined with the app file as lots of update input functions
   #userDefinedServer("user defined inputs")
   #STEP 1 - User stream temperature 
   user_data <-  eventReactive(input$upload_water, {
@@ -427,20 +439,18 @@ server <- function(input, output, session) {
   TM_data_byyear <- eventReactive(input$calc_metric_u,{
     T.y <- add_waterYear(Tem_df())
     T.yl <- lapply(levels(T.y$year_water), function(x){
-      
-      df.y <- T.y %>%
-        filter(year_water == x)#%>%
-        
-      df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
-      
-      df.j$year <- x # add water year as a valuBe in table
-      
-      df.j#return dataframe
-    })
+            df.y <- T.y %>%
+            filter(year_water == x)#%>%
     
-    #names(T.yl) <- levels(T.y$year_water)
-    #conduct therm analysis 
-    df <- do.call(rbind.data.frame, T.yl)#return single dataframe
+            df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
+      
+    
+            df.j$year <- x # add water year as a valuBe in table
+      
+            df.j#return dataframe
+            })
+    #convert list to dataframe
+    df <- do.call(rbind.data.frame, T.yl)#return single dataframen
     
   })
   

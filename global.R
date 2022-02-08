@@ -16,13 +16,17 @@ suppressPackageStartupMessages({
   library(plotly)
   library(ggplot2)
   library(viridis)
+  #web scraping
+  library(xml2)
+  library(rvest)
   #library(dygraphs)
   
-  
+  envCan_stations <- read.csv("https://data-donnees.ec.gc.ca/data/substances/monitor/automated-fresh-water-quality-monitoring-and-surveillance-data/auto-water-qual-eau-stations.csv")
   #library(DT)
   source("R/nwis_data_v2.R")
   source("R/daymet_data_v2.R")
   source("R/rundata_v1.R")
+  source("R/env_Canada_data.R")
   
   #for app functions
   source("serverFunctions.R")
