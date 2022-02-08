@@ -16,7 +16,26 @@ ui <- fluidPage(
   navbarPage(selected = "NWIS Stream Data",
              ###APP TITLE###
              "PASTA: Paired Air and Stream Temperature Analysis",
-             
+        
+        ##-------Info-----------######
+        
+        tabPanel(
+          "Information Page",
+          fluidRow(
+            column(width = 8, offset = 2,
+                   h1("Analysis Infomation and Overview"),
+                   
+                   p("**********UNDER DEVELOPMENT****************"),
+                   p("**********FOR TEST APPLICATION ONLY********"),
+                   p("**********USE WITH DISCRETION**************")
+                   
+                   # includeText("include.txt"),
+                   # hr(),
+                   # includeText("citations.txt")
+                   
+                   
+            ))),
+        
         ##-------NWIS-----------#####
             tabPanel("NWIS Stream Data",
                nwisUI("nwisModule")
