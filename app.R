@@ -27,11 +27,11 @@ ui <- fluidPage(
                    
                    p("**********UNDER DEVELOPMENT****************"),
                    p("**********FOR TEST APPLICATION ONLY********"),
-                   p("**********USE WITH DISCRETION**************")
+                   p("**********USE WITH DISCRETION**************"),
                    
                    # includeText("include.txt"),
                    # hr(),
-                   # includeText("citations.txt")
+                   #shiny::includeText("Citation_Text.txt")
                    
                    
             ))),

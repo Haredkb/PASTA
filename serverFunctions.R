@@ -172,30 +172,8 @@ envCanServer <- function(id) {
 
       TM_data <- eventReactive(
         #rerun when button is pressed
-        input$gobutton,{ #https://stackoverflow.com/questions/46521026/r-shiny-action-button-and-data-table-output
-
-          # progress <- shiny::Progress$new()
-          # # Make sure it closes when we exit this reactive, even if there's an error
-          # on.exit(progress$close())
-          # progress$set(message = "Calculating Metric Values", value = 0)
-
-          #Calculate Yearly
-          T.y <- add_waterYear(Tem_df())
-          T.yl <- lapply(levels(T.y$year_water), function(x){
-
-            df.y <- T.y %>%
-              filter(year_water == x)#%>%
-
-            df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
-
-            df.j$year <- x # add water year as a valuBe in table
-
-            df.j#return dataframe
-          })
-
-          #names(T.yl) <- levels(T.y$year_water)
-          #conduct therm analysis
-          df <- do.call(rbind.data.frame, T.yl)#return single dataframe
+        input$gobutton,{
+                TMy_output(Tem_df()) #create yearly annual signal analysis 
           })
 
       # Create output table
