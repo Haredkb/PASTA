@@ -474,7 +474,8 @@ nwisServer <- function(id) {
                 ######## conduct thermal analysis ########
                 #++++++++++++++++++++++++++++++++++++++++#
                 
-                data <- eventReactive(
+                #download nwis temperature data
+                download_data <- eventReactive(
                   #rerun when button is pressed
                   input$gobutton,{ #https://stackoverflow.com/questions/46521026/r-shiny-action-button-and-data-table-output
                     
@@ -485,10 +486,9 @@ nwisServer <- function(id) {
                     
                     #Conduct NWIS thermal analysis 
                     #using selected rows from site table
-                    
                     s = input$site_table_rows_selected #indices of the selected rows
                     
-                    ##creat list of site names to be used in nwis analysis 
+                    ##create list of site names to be used in nwis analysis 
                     if(length(s)>1){ #less than one cannot use pull 
                       site_table_s <- NWIS_sites()[s, , drop = TRUE] %>% #create dataframe with only the selected rows
                         pull("site_no")#extract site id column as a vector
@@ -496,31 +496,47 @@ nwisServer <- function(id) {
                       site_table_s <- NWIS_sites()[s,]$site_no
                     }
                     
+                    #get stream temperature data (and location data)
+                    nwis_l <- readNWIS_Temp(site_table_s, #input$siteNo,#for use of dropdown 
+                                  format(input$date.range[1]), #start date
+                                  format(input$date.range[2]))#end date)
+                    #list [1] is stream temperature data, and [2] is location information
+                  })
+                
+                  #create dataframe with air and stream temperature 
+                  data <- reactive({
+                    #get air temperature data
+                    aTem <- batch_daymet_u(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
+                    #clean data and pull out avgdaily air temperature 
+                    aTem <- clean_daymet(aTem)%>%
+                      dplyr::select(site_id, date, tavg_air_C)
                     
+                    #join air ad stream temp in a table to have attributed needed for therm_analysis
+                    df <- left_join(as.data.frame(download_data()[1]), aTem, by = c("site_id", "date"))%>%
+                      na.omit()
                     
-                    #print(c(input$siteNo, format(input$date.range[1]), format(input$date.range[2])))
-                    #create output dataframe
-                    #Analysis 
-                    df <- therm_analysis_nwis(site_table_s, #input$siteNo,#for use of dropdown 
-                                              format(input$date.range[1]), #start date
-                                              format(input$date.range[2]), #end date
-                                              TRUE) #bfi TRUE or FALSE
-                    df
-                    
+                    ## for debugging
+                    saveRDS(df, "df_nwis_output.RDS")
+                    return(df)
+                  })
+                  
+                  #create location dataframe for maps
+                  loc_df <- reactive({
+                    df <- as.data.frame(download_data()[2])
+                    return(df)
                   })
                 
                 # Create output table 
                 output$metric_table <-DT::renderDT({
-                  datatable(data()) %>% formatStyle(
-                    c('AmpRatio', "PhaseLag_d"),
-                    backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
-                    formatStyle(
-                      c('TS__Slope', "AdjRsqr"),
-                      backgroundColor = 'lightblue')
+                  datatable(left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id")) %>% 
+                    formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+                                backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+                    formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
+                                backgroundColor = 'lightblue') %>%
+                    formatStyle(c("max_conseq_missing_days"),
+                                backgroundColor = styleInterval(49, c('white', 'orange'))) 
                   
                 })
-                
-                
                 
                 ##Download Metric Output Table 
                 output$downloadData <- downloadHandler(
@@ -529,6 +545,33 @@ nwisServer <- function(id) {
                   },
                   content = function(file) {
                     write.csv(data(), file, row.names = FALSE)
+                  }
+                )
+                
+                ### conduct yearly thermal analysis
+                TM_data_byyear <- eventReactive(input$gobutton,{
+                  TMy_output(data())
+                  
+                })
+                
+                #output thermal metric table by year (seperate tab)
+                output$user_yearlyTM <- DT::renderDataTable({
+                  datatable(TM_data_byyear()) %>% 
+                    formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+                                backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+                    formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
+                                backgroundColor = 'lightblue') %>%
+                    formatStyle(c("max_conseq_missing_days"),
+                                backgroundColor = styleInterval(49, c('white', 'orange'))) 
+                })
+                
+                ##Download Thermal Metric Output Table 
+                output$download_TMyearly <- downloadHandler(
+                  filename = function() {
+                    paste("ThermalMetricsyearly_NWIS.csv")
+                  },
+                  content = function(file) {
+                    write.csv(TM_data_byyear(), file, row.names = FALSE)
                   }
                 )
                 
@@ -546,9 +589,9 @@ nwisServer <- function(id) {
                 
                 #dont want to have to press button to update map points - so just reactive not event reactive
                 points <- reactive({
-                  df <- data()%>%
+                  df <- loc_df()%>%
                     dplyr::select(dec_lat_va, dec_lon_va, site_no)%>%#create simple dataframe with lat and long first
-                    rename("lat" = dec_lat_va, "lng" = dec_lon_va)
+                    dplyr::rename("lat" = dec_lat_va, "lng" = dec_lon_va)
                 })
                 
                 

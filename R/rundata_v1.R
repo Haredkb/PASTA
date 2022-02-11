@@ -22,24 +22,29 @@ library(lubridate)
 
 library(smwrBase) #for water year
 
-source("R/daymet_data_v1.R")
+
 source("R/paired_annualT_signals.R")
 source("R/stream_thermal_sensitivity.R")
 #source("R/baseflow_regression.R")
 
 
 ############
+## Data Retrival package has this function, but just to raw USGS files. 
+############
+
 add_waterYear <- function(df_tem){
   #rename temperature dataframe
       df_tem <- df_tem %>%
         rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)
       
-      df_tem$year_water <- as.factor(waterYear(df_tem$date))
+      df_tem$year_water <-waterYear(as.POSIXct(as.character(df_tem$date), format="%Y-%m-%d"))
       
       return(df_tem)
 }
 
 
+############'
+### CORE PREP ANALYSIS for Thermal Metrics(TM)
 ############
 therm_analysis <- function(df_tem){#, df_loc){ 
   #df(3col) must have first column siteID, second column date, and third stream tempC; df_loc(3 col) must have siteID and lat long
@@ -69,7 +74,6 @@ therm_analysis <- function(df_tem){#, df_loc){
           T_lm_fit <- fit_ThermalSens(df_temp_l[[x]][,"date"], 
                                       df_temp_l[[x]][,"tavg_air_C"], 
                                       df_temp_l[[x]][,"tavg_wat_C"])
-          #return(T_lm_fit)
         }
         )
         #name the lists based on site name

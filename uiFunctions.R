@@ -204,6 +204,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                 ),#end mainpanel
                 
                 tabPanel("Results: Metric Table and Plots", 
+                        fluidRow(
                          h2("Metric Data Table"),
                          h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),
@@ -218,11 +219,15 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          #plotOutput("AS_plot"),#annual signal plot
                          #plotOutput("TS_plot"),
                          leafletOutput(ns("metricmap")),
+                         dataTableOutput(ns("user_yearlyTM")),
+                         downloadButton(ns("download_TMyearly"), "Download DataTable by Year"),
                 #p(),
                 #actionButton("recalc", "Update Points")),
                 
                 #tabPanel("Summary", verbatimTextOutput("summary"))
-    )
+    
+                )#end fluid row 
+                )
   ),#end page1
   )
 }

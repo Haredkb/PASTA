@@ -365,7 +365,7 @@ server <- function(input, output, session) {
   ###Create Reactive clean consistent Datatable for location inputs
   sLoc_df <- eventReactive(input$locselect, {
     user_loc() %>%
-      rename("site_id" = input$IDloc_colnm , "lat" = input$lat_colnm, "long" = input$long_colnm)%>%
+      dplyr::rename("site_id" = input$IDloc_colnm, "lat" = input$lat_colnm, "long" = input$long_colnm)%>%
       dplyr::select("site_id", "lat", "long")%>% #to get column order correct and drop unused columns
       mutate(site_id = as.factor(site_id))%>%#to eal with numeric site ids
       dplyr::group_by(site_id)%>%
@@ -456,20 +456,7 @@ server <- function(input, output, session) {
   
   ### conduct yearly thermal analysis
   TM_data_byyear <- eventReactive(input$calc_metric_u,{
-    T.y <- add_waterYear(Tem_df())
-    T.yl <- lapply(levels(T.y$year_water), function(x){
-            df.y <- T.y %>%
-            filter(year_water == x)#%>%
-    
-            df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
-      
-    
-            df.j$year <- x # add water year as a valuBe in table
-      
-            df.j#return dataframe
-            })
-    #convert list to dataframe
-    df <- do.call(rbind.data.frame, T.yl)#return single dataframen
+      TMy_output(Tem_df())
     
   })
   

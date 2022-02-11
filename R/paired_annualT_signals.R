@@ -10,7 +10,7 @@ data_gap_check <- function(df){
   #df <- Tem_df#bebuggg remove
   #df <- T.y
   df <- na.omit(df) %>%
-    filter(tavg_wat_C < 70) #removing weird values
+    dplyr::filter(tavg_wat_C < 70) #removing weird values
   
   df_l <- lapply(unique(df$site_id), function(x){
                 #
@@ -35,7 +35,7 @@ data_gap_check <- function(df){
 ## ----------- Calcuate radian date from date------ ##
 rad_day <- function(x, yr_type){ #input date vector
 
-  
+  print(head(x))
   if(missing(yr_type)){
     yr_type <- "water" #use water year unless calendar is specified
   }
@@ -45,6 +45,7 @@ rad_day <- function(x, yr_type){ #input date vector
   d <- yday(as.POSIXct(x, format="%Y-%m-%d"))
   
   } else { #use water year 
+    
   wtr_yr <- as.numeric(as.character(waterYear(as.POSIXct(x, format="%Y-%m-%d")))) #to convert factor to numeric must convert first to character
   d <- as.Date(x, format="%Y-%m-%d")
   d_df <- data.frame(wtr_yr, d)
