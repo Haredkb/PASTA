@@ -407,7 +407,7 @@ server <- function(input, output, session) {
   ####Daymet Air collection 
   aTem_df <- eventReactive(input$daymet_select, { 
     #run batch collection from daymet
-    aTem <- batch_daymet_u(loc_df())
+    aTem <- batch_daymet(loc_df())
     #clean data and pull out avgdaily air temperature 
     aTem <- clean_daymet(aTem)%>%
       dplyr::select(site_id, date, tavg_air_C)

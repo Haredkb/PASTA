@@ -1,6 +1,6 @@
-h1("Citations"),
+p("Citations
 Hare, DK, Helton AM, Johnson ZC, Lane JW, and Briggs MA (2021) Continental-scale analysis of shallow and deep groundwater contributions to streams. Nature Communications 12, 1450. https://doi.org/10.1038/s41467-021-21651-0
 Johnson, ZC, BG Johnson, MA Briggs, WD Devine, CD Snyder, NP Hitt, DK Hare, TV Minkova (2020). Paired air-water annual temperature patterns reveal hydrogeological controls on stream thermal regimes at watershed to continental scales. Journal of Hydrology. https://doi.org/10.1016/J.JHYDROL.2020.124929
 Kelleher, C., Wagener, T., Gooseff, M., McGlynn, B., McGuire, K., Marshall, L., 2012. Investigating controls on the thermal sensitivity of Pennsylvania streams. Hydrol. Process. 26, 771–785. https://doi.org/10.1002/hyp.8186
 Letcher, B.H., Hocking, D.J., Neil, K.O., Whiteley, A.R., Nislow, K.H., Donnell, M.J.O., 2016. A hierarchical model of daily stream temperature using air-water temperature synchronization , autocorrelation , and time lags. PeerJ 1–26. https://doi.org/10.7717/peerj.1727
-Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840
+Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840")

@@ -85,7 +85,7 @@ envCanServer <- function(id) {
                  end = max(df$date))
         
         #run batch collection from daymet
-        aTem <- batch_daymet_u(loc_df)
+        aTem <- batch_daymet(loc_df)
         #clean data and pull out avgdaily air temperature 
         aTem <- clean_daymet(aTem)%>%
           dplyr::select(site_id, date, tavg_air_C)
@@ -506,7 +506,7 @@ nwisServer <- function(id) {
                   #create dataframe with air and stream temperature 
                   data <- reactive({
                     #get air temperature data
-                    aTem <- batch_daymet_u(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
+                    aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
                     #clean data and pull out avgdaily air temperature 
                     aTem <- clean_daymet(aTem)%>%
                       dplyr::select(site_id, date, tavg_air_C)

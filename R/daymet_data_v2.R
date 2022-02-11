@@ -40,7 +40,7 @@ library(sp) ##manipulationg spatial data
 ############ Daymet Function  ##################
 ### to read directly from R
 ### from the raw download_dayment_batch - reworked to save from workspace
-batch_daymet_u <- function(
+batch_daymet <- function(
   locations = x,
   #start = as.numeric(format(Sys.time(), "%Y")) - 3,#default
   #end = as.numeric(format(Sys.time(), "%Y")) - 1, #default
