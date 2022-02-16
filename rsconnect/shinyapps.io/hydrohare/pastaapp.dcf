@@ -5,7 +5,7 @@ account: hydrohare
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5484556
-bundleId: 5557294
+bundleId: 5582754
 url: https://hydrohare.shinyapps.io/pastaapp/
-when: 1644336757.40108
-lastSyncTime: 1644336757.40108
+when: 1644960279.34205
+lastSyncTime: 1644960279.34205

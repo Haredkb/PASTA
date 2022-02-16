@@ -47,7 +47,8 @@ fit_ThermalSens <- function(date, a_temp, w_temp, y){
   TS_output <- data.frame(TS__Slope =round(coef(TS_fit.lm)[2],2), 
                           AdjRsqr=round(summary(TS_fit.lm)$adj.r.squared,2),
                           RMSE=sqrt(mean(resid(TS_fit.lm)^2)),
-                          YInt=coef(TS_fit.lm)['(Intercept)'])
+                          YInt=round(coef(TS_fit.lm)['(Intercept)'],2)
+                          )
   return(TS_output)
   
 }

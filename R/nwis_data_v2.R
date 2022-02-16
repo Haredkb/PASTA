@@ -32,35 +32,47 @@ library(lubridate)
         ### Download Stream Temperature- needs to be done seperate from 00060 pCode for Baseflow
           df_stream <- tryCatch( ##need to put in if statment so only runs if temp is available and Q runs if is there but not required. 
             {
-            readNWISdata(siteNumbers = siteNo,
+            df <- readNWISdv(siteNumbers = siteNo,
                                     parameterCd = pCode,
                                     startDate = start.date,
-                                    endDate = end.date) %>%
+                                    endDate = end.date)%>%
               dplyr::select(-contains("cd"))%>%
               rename(tavg_wat_C = "X_00010_00003",
                      "site_id" = "site_no",
-                     "date" = "dateTime")%>%
+                     "date" = "Date")%>%
               filter(tavg_wat_C > 1)%>%
                 dplyr::select(site_id, date, tavg_wat_C)
+            
+            ##extract lat/long for daymet data mining
+            df_loc <- attr(df, "siteInfo") %>% #"Secret attributes" - want to know more about these
+              dplyr::select(site_no, dec_lat_va, dec_lon_va, station_nm, srs, timeZoneOffset) %>%
+              cbind(., start.date, end.date) %>%#add column names of start and end date. 
+              dplyr::select(1,2,3,7,8,4:6) #to reorder for streamline use of daymet (site, lat, long, start, end)
+            
+            
+            output <- list(df, df_loc)
+            
+            return(output)
+            
               },
+            
           error=function(cond) {
-            message(paste("Data does not exist or error reading data", siteNo, start.date, end.date))
-            message("Here's the original error message:")
-            message(cond)
+            
+          if(grepl("X_00010_00003", cond, fixed = TRUE)){
+            text <- paste("Data does not exist at", siteNo,"for", start.date, "to", end.date, 
+                          "often this is due to a >yearly gap in data collection")
+            message(text)
+              return(text)
+            
+            }else({
+              message(paste("There is a data download error with", siteNo))
+              message(cond)
             # Choose a return value in case of error
-            return(NA)
-          }
-
+              return(NA)
+            })
+                }#end error 
           )
           
-        ##extract lat/long for daymet data mining
-        df_loc <- attr(df_stream, "siteInfo") %>% #"Secret attributes" - want to know more about these
-          dplyr::select(site_no, dec_lat_va, dec_lon_va, station_nm, srs, timeZoneOffset) %>%
-          cbind(., start.date, end.date) %>%#add column names of start and end date. 
-          dplyr::select(1,2,3,7,8,4:6) #to reorder for streamline use of daymet (site, lat, long, start, end)
-        
-        
-        output <- list(df_stream, df_loc)
         }
         
         #################

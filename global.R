@@ -27,7 +27,7 @@ suppressPackageStartupMessages({
   source("R/daymet_data_v2.R")
   source("R/rundata_v1.R")
   source("R/env_Canada_data.R")
-  
+  source("R/plotFunctions.R")
   #for app functions
   source("serverFunctions.R")
   source("uiFunctions.R")

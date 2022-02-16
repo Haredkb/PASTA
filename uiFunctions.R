@@ -78,6 +78,7 @@ envCanUI <- function(id, label = "envCanada automated") {
                 ),#end mainpanel
     #             
               tabPanel("Results: Metric Table and Plots",
+                       downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
                        h2("Metric Data Table"),
                        h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                        p("Amp_Ratio is Amplitude Ratio, unitless"),
@@ -151,6 +152,8 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            
                            verbatimTextOutput(ns("AOI")), #area of interest
                            
+                            #area of interest
+                           
                            # #slider # add in water year (from DVStats) then use this function 
                            # sliderInput("year.range", "Analysis Years", value = c(year(Sys.Date()- years(8)), year(Sys.Date()- years(4))),
                            #                                     min = year(as.Date("1979-10-01")), max = year(Sys.Date()- years(2)), sep = ""),
@@ -160,7 +163,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            dateRangeInput(ns("date.range"), "Analysis Years",
                                           start = as.Date("2010-10-01"),
                                           end   = as.Date("2015-09-30"),
-                                          min    = as.Date("2005-01-01"),#("1980-01-01"),
+                                          min    = as.Date("1980-01-01"),
                                           max    = as.Date("2020-12-30")),
                            
                            actionButton(
@@ -203,8 +206,9 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          ),
                 ),#end mainpanel
                 
-                tabPanel("Results: Metric Table and Plots", 
+                tabPanel("Results: Metric Tables", 
                         fluidRow(
+                         downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
                          h2("Metric Data Table"),
                          h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),
@@ -213,7 +217,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                          p("AdjRsqr, is the r2 of the linear fit"),
                          h3("Please review the literature citations from the information tab to explore how to interpret these data"),
-                         
+                         verbatimTextOutput(ns("datafail")),
                          dataTableOutput(ns("metric_table")),
                          downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
                          #plotOutput("AS_plot"),#annual signal plot
@@ -227,6 +231,24 @@ nwisUI <- function(id, label = "Automated NWIS") {
                 #tabPanel("Summary", verbatimTextOutput("summary"))
     
                 )#end fluid row 
+                ),
+                
+                tabPanel("Data Plots",
+                         "Annual Temperature Signal Data Fit",
+                         #fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                         #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                         plotlyOutput(ns("plot_tempdata"))
+                         #DT::dataTableOutput("user_dataair")
+                ),#end plots panel
+                
+                tabPanel("Results Plots",
+                         "",
+                         #fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                         #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                         fluidRow(
+                           splitLayout(cellWidths = c("50%", "50%"), plotlyOutput(ns("plot_TAS")),#Temperature ANnual Signals
+                                       plotlyOutput(ns("plot_TS"))))
+                         #DT::dataTableOutput("user_dataair")
                 )
   ),#end page1
   )

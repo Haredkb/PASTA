@@ -89,11 +89,10 @@ envCanServer <- function(id) {
         #clean data and pull out avgdaily air temperature 
         aTem <- clean_daymet(aTem)%>%
           dplyr::select(site_id, date, tavg_air_C)
-        
-        remove_modal_spinner()
-        
+      
+        #join air and stream temperature data to make data frame
         output <- left_join(df, aTem, by = c("site_id", "date"))%>%
-          na.omit()
+          na.omit() #clean out temperatures that are not paired
         
         output
       })
@@ -383,7 +382,7 @@ nwisServer <- function(id) {
                   } else{ #if bounding box is not checked will use state input
                     
                     df <- whatNWISdata(
-                      stateCd= state(),
+                      stateCd= c("CT"), #state(),
                       siteType="ST",
                       parameterCd=c("00010"), #temp
                       service="dv",#daily values 
@@ -402,8 +401,14 @@ nwisServer <- function(id) {
                 
                 #Create Table - use this to select sites to analyze
                 output$site_table <- renderDataTable({
-                  NWIS_sites()%>%
-                    dplyr::select(2:3,"begin_date", "end_date", 1)
+                  tbl <- NWIS_sites()%>%
+                    dplyr::select(2:3,"begin_date", "end_date", 1, "count_nu")%>%
+                    #make column with data missing table (cant do exact years missing yet)
+                    mutate(years_missing = round(as.numeric((difftime(end_date, begin_date, units = c("days"))) - count_nu)/365),1)
+                  
+                  datatable(tbl)%>%
+                    formatStyle(c('years_missing'),
+                                backgroundColor = styleInterval(5, c('lightgray', 'yellow'))) # multi yer data gaps
                 })
                 
                 
@@ -487,7 +492,8 @@ nwisServer <- function(id) {
                     #Conduct NWIS thermal analysis 
                     #using selected rows from site table
                     s = input$site_table_rows_selected #indices of the selected rows
-                    
+                    print(s)
+                    print(NWIS_sites())
                     ##create list of site names to be used in nwis analysis 
                     if(length(s)>1){ #less than one cannot use pull 
                       site_table_s <- NWIS_sites()[s, , drop = TRUE] %>% #create dataframe with only the selected rows
@@ -498,37 +504,51 @@ nwisServer <- function(id) {
                     
                     #get stream temperature data (and location data)
                     nwis_l <- readNWIS_Temp(site_table_s, #input$siteNo,#for use of dropdown 
-                                  format(input$date.range[1]), #start date
-                                  format(input$date.range[2]))#end date)
+                                            format(input$date.range[1]), #start date
+                                            format(input$date.range[2]))#end date)
                     #list [1] is stream temperature data, and [2] is location information
+                    
+                    if (!exists("nwis_l")) {
+                      output$datafail <- renderText({
+                        paste0("Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
+                      })
+                      
+                    }
+                    
+                    return(nwis_l)
+                   
                   })
                 
                   #create dataframe with air and stream temperature 
-                  data <- reactive({
+                
+                data <- reactive({
+                  print(download_data()[2])
+                  print("batch aTem")
                     #get air temperature data
                     aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
                     #clean data and pull out avgdaily air temperature 
+                  print("batch aTem2")
                     aTem <- clean_daymet(aTem)%>%
                       dplyr::select(site_id, date, tavg_air_C)
                     
                     #join air ad stream temp in a table to have attributed needed for therm_analysis
                     df <- left_join(as.data.frame(download_data()[1]), aTem, by = c("site_id", "date"))%>%
                       na.omit()
-                    
+                    print(df)
                     ## for debugging
                     saveRDS(df, "df_nwis_output.RDS")
                     return(df)
                   })
                   
                   #create location dataframe for maps
-                  loc_df <- reactive({
+                loc_df <- reactive({
                     df <- as.data.frame(download_data()[2])
                     return(df)
                   })
                 
                 # Create output table 
-                output$metric_table <-DT::renderDT({
-                  datatable(left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id")) %>% 
+                output$metric_table <-DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
+                  datatable(full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id"), by = c("site_no" = "site_id"))) %>% 
                     formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
                                 backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
                     formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
@@ -575,6 +595,19 @@ nwisServer <- function(id) {
                   }
                 )
                 
+                #creating datatable for plotting
+                p_df <- reactive({
+                  create_TMplot_df(data())
+                })
+                
+                #output for data tab
+                output$plot_tempdata <- renderPlotly({
+                  
+                  rows <- length(unique(data()$site_id))*200 #~600px before you scroll
+                  print(rows)
+                  ggplotly(p_dataTS(p_df()), height = rows)
+                  
+                })
                 
                 
                 ##############
