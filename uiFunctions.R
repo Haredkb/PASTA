@@ -135,7 +135,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
     add_busy_spinner(spin = "radar", position = "full-page", margins = c(10, 20)),
     ##TABS##
     # Output: Tabset w/ plot, summary, and table ----
-    tabsetPanel(id = "nwis_calc", type = "tabs",
+    tabsetPanel(id = ns("nwis_calc"), #type = "tabs",
                 tabPanel("Input: Available Stream Sites",
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
@@ -206,7 +206,8 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          ),
                 ),#end mainpanel
                 
-                tabPanel("Results: Metric Tables", 
+                tabPanel(title = "Results: Metric Tables", 
+                         value = ns('results_tbl'), 
                         fluidRow(
                          downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
                          h2("Metric Data Table"),

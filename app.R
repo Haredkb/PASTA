@@ -585,6 +585,7 @@ p_df <- reactive({
     
     ggplotly(p, height = 600)
     
+    
   })
 
 

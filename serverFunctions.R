@@ -382,7 +382,7 @@ nwisServer <- function(id) {
                   } else{ #if bounding box is not checked will use state input
                     
                     df <- whatNWISdata(
-                      stateCd= c("CT"), #state(),
+                      stateCd= state(),
                       siteType="ST",
                       parameterCd=c("00010"), #temp
                       service="dv",#daily values 
@@ -472,7 +472,7 @@ nwisServer <- function(id) {
                 ##change view to resutls panel
                 observeEvent(input$gobutton, {
                   updateTabsetPanel(session, "nwis_calc", #id of tabset in ui, 
-                                    selected = "Results: Metric Table and Plots")
+                                    selected = NS(id, 'results_tbl'))
                 })
                 
                 #++++++++++++++++++++++++++++++++++++++++#
@@ -605,8 +605,33 @@ nwisServer <- function(id) {
                   
                   rows <- length(unique(data()$site_id))*200 #~600px before you scroll
                   print(rows)
-                  ggplotly(p_dataTS(p_df()), height = rows)
+                  ggplotly(p_dataTS(p_df()), height = rows)%>%
+                    plotly::layout(legend=list(x=0, 
+                                               xanchor='left',
+                                               yanchor='top',
+                                               orientation='h'))
                   
+                })
+                
+                #Plot Linear Fit 
+                output$plot_TS <- renderPlotly({
+                  rows <- length(unique(data()$site_id))*200 
+                  
+                  ggplotly(plot_TMlm(p_df()), height =rows)%>% #px )%>%
+                    plotly::layout(legend=list(x=0, 
+                                               xanchor='left',
+                                               yanchor='top',
+                                               orientation='h'))
+                })
+                
+                #Plot Annual Signal Results
+                output$plot_TAS <- renderPlotly({
+                  
+                  ggplotly(plot_TMas(TM_data_byyear()), height =600)%>% #px )%>%
+                  plotly::layout(legend=list(x=0, 
+                                             xanchor='left',
+                                             yanchor='top',
+                                             orientation='h'))
                 })
                 
                 

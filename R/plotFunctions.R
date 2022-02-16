@@ -7,7 +7,7 @@
 # })
 
 #create empty 
-
+#create df for plot functions
 create_TMplot_df <- function(df){
       p_df <-  df_temp_l <- df%>% #Tem_df() %>%
           split(f = as.factor(.$site_id))
@@ -44,7 +44,7 @@ create_TMplot_df <- function(df){
       return(p_df)
 }
   
-  
+#Plot Raw and Fit Temperature Data 
 p_dataTS <- function(p_df){#p_df is a reactiveValue
   #trying to remove straightlines with following code
   # hh <- data.frame(date = seq(min(p_df$date), max(p_df$date), by="days"))
@@ -69,40 +69,31 @@ p_dataTS <- function(p_df){#p_df is a reactiveValue
     p
 }
 
-
-# plot_TS <-renderPlotly({
-#   p <- p_df$wat %>%
-#     filter(tavg_wat_C > 1)%>%
-#     ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
-#     geom_point()+
-#     stat_smooth(method = "lm", col = "red")+
-#     geom_abline(slope = 1, intercept = 0)+
-#     # Add a legend to the plot
-#     legend(1, 95, legend=c("1:1", "Linear Fit"),
-#            col=c("black", "red"), lty=1, cex=0.8,
-#            title="Line types", text.font=4, bg='white')+
-#     scale_color_viridis(discrete=TRUE)+
-#     labs(x = "Air Temperature (C)", y= "Water Temperature (C)", colour="Year")+
-#     xlim(0, NA)+
-#     theme_bw()+
-#     facet_grid(rows = vars(site_id)) #rows = vars(site_id))
-#   
-#   rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
-#   
-#   ggplotly(p, height = rows)
-#   
-# })
+#plot linear regression
+plot_TMlm <- function(p_df){
+  p <- p_df %>%
+    filter(tavg_wat_C > 1)%>%
+    ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
+    geom_point()+
+    stat_smooth(method = "lm", col = "red")+
+    geom_abline(slope = 1, intercept = 0, lty= 2)+
+    # Add a legend to the plot
+    #geom_text("Black Line is 1:1", colour = "black")+
+    scale_color_viridis(discrete=TRUE)+
+    labs(x = "Air Temperature (C)", y= "Water Temperature (C)", colour="Year")+
+    xlim(0, NA)+
+    theme_bw()+
+    facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+}
 # 
-# output$plot_TAS <-renderPlotly({
-#   p <- ggplot() +
-#     geom_point(data = TM_data(), aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
-#     #ggtitle("test")+
-#     #scale_shape_manual(values=seq(0,15))+
-#     scale_color_viridis(discrete=TRUE, option = "turbo")+
-#     labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
-#     ylim(0,1.2)+
-#     theme_bw()
-#   
-#   ggplotly(p, height = 600)
-#   
-# })
+
+plot_TMas <-function(TM_data){
+  p <- ggplot() +
+    geom_point(data = TM_data, aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
+    #ggtitle("test")+
+    #scale_shape_manual(values=seq(0,15))+
+    scale_color_viridis(discrete=TRUE, option = "turbo")+
+    labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Site ID")+
+    ylim(0,1.2)+
+    theme_bw()
+}
