@@ -92,7 +92,8 @@ envCanServer <- function(id) {
       
         #join air and stream temperature data to make data frame
         output <- left_join(df, aTem, by = c("site_id", "date"))%>%
-          na.omit() #clean out temperatures that are not paired
+          na.omit() %>%#clean out temperatures that are not paired
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60) #outof range.
         
         output
       })
@@ -102,6 +103,16 @@ envCanServer <- function(id) {
       output$site_table <- renderDataTable({
         Tem_df()
       })
+      
+      ##Download Metric Output Table
+      output$download_rawdata <- downloadHandler(
+        filename = function() {
+          paste("RawData_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(Tem_df(), file, row.names = FALSE)
+        }
+      )
       
     #   
     #   
@@ -129,7 +140,9 @@ envCanServer <- function(id) {
                            label = paste(points_explore()$STATION_NO, "//", points_explore()$STATION_NAME)) #make a false point so the zoom works when adding points
 
       })
-    
+
+      #
+      
     # #   
     #   observeEvent(input$searchsites, {
     # 
@@ -233,6 +246,15 @@ envCanServer <- function(id) {
         p_df
       })
       
+      output$downloadSinData <- downloadHandler(
+        filename = function() {
+          paste("DataFit_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(p_df(), file, row.names = FALSE)
+        }
+      )
+      
       output$plot_tempdata <-renderPlotly({
         p <- ggplot(p_df()) +
           geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
@@ -253,7 +275,8 @@ envCanServer <- function(id) {
       
       output$plot_TS <-renderPlotly({
         p <- p_df() %>%
-          filter(tavg_wat_C > 1)%>%
+          dplyr::filter(tavg_wat_C > 1)%>%
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)%>%
           ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
           geom_point()+
           stat_smooth(method = "lm", col = "red")+
@@ -489,17 +512,22 @@ nwisServer <- function(id) {
                     on.exit(progress$close())
                     progress$set(message = "Calculating Metric Values", value = 0)
                     
+                    
                     #Conduct NWIS thermal analysis 
                     #using selected rows from site table
+                    
                     s = input$site_table_rows_selected #indices of the selected rows
-                    print(s)
-                    print(NWIS_sites())
+                    
                     ##create list of site names to be used in nwis analysis 
                     if(length(s)>1){ #less than one cannot use pull 
                       site_table_s <- NWIS_sites()[s, , drop = TRUE] %>% #create dataframe with only the selected rows
                         pull("site_no")#extract site id column as a vector
-                    } else{
+                    } else if (length(s) == 1){
                       site_table_s <- NWIS_sites()[s,]$site_no
+                    } else if (!exists(s)){
+                      site_table_s <- NWIS_sites()$site_no
+                    } else{ #should catch if they dont select anything will do everything
+                      site_table_s <- NWIS_sites()$site_no
                     }
                     
                     #get stream temperature data (and location data)
@@ -533,7 +561,9 @@ nwisServer <- function(id) {
                     
                     #join air ad stream temp in a table to have attributed needed for therm_analysis
                     df <- left_join(as.data.frame(download_data()[1]), aTem, by = c("site_id", "date"))%>%
-                      na.omit()
+                      na.omit() %>%
+                      dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)
+                
                     print(df)
                     ## for debugging
                     saveRDS(df, "df_nwis_output.RDS")
@@ -603,7 +633,7 @@ nwisServer <- function(id) {
                 #output for data tab
                 output$plot_tempdata <- renderPlotly({
                   
-                  rows <- length(unique(data()$site_id))*200 #~600px before you scroll
+                  rows <- length(unique(data()$site_id))*300 #~600px before you scroll
                   print(rows)
                   ggplotly(p_dataTS(p_df()), height = rows)%>%
                     plotly::layout(legend=list(x=0, 
@@ -615,7 +645,7 @@ nwisServer <- function(id) {
                 
                 #Plot Linear Fit 
                 output$plot_TS <- renderPlotly({
-                  rows <- length(unique(data()$site_id))*200 
+                  rows <- length(unique(data()$site_id))*300 
                   
                   ggplotly(plot_TMlm(p_df()), height =rows)%>% #px )%>%
                     plotly::layout(legend=list(x=0, 

@@ -19,7 +19,7 @@ envCanUI <- function(id, label = "envCanada automated") {
                 tabPanel("Input: Available Stream Sites",
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
-                           
+                           h2("UNDER DEVELOPMENT"),
                            h2("STEP 1"),
                            h4("Choose Stations"),
                            # "state.name will be replaced with values from NWIS
@@ -71,6 +71,7 @@ envCanUI <- function(id, label = "envCanada automated") {
                          mainPanel(
                            h2("Sites with Available Temperature Data"),
                            leafletOutput(ns("dataavailmap")),
+                           downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
                            dataTableOutput(ns("site_table")),
                            p()#,
                            #actionButton("explore", "Update Points")
@@ -78,7 +79,7 @@ envCanUI <- function(id, label = "envCanada automated") {
                 ),#end mainpanel
     #             
               tabPanel("Results: Metric Table and Plots",
-                       downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
+                       
                        h2("Metric Data Table"),
                        h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                        p("Amp_Ratio is Amplitude Ratio, unitless"),
@@ -102,7 +103,8 @@ envCanUI <- function(id, label = "envCanada automated") {
              "Annual Temperature Signal Data Fit",
              #fileInput("upload_water", "Upload Clean Dataframe as csv"),
              #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
-             plotlyOutput(ns("plot_tempdata"))
+             plotlyOutput(ns("plot_tempdata")),
+             downloadButton(ns("downloadSinData"))
              #DT::dataTableOutput("user_dataair")
     ),#end plots panel
     

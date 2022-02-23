@@ -10,6 +10,7 @@
 #create df for plot functions
 create_TMplot_df <- function(df){
       p_df <-  df_temp_l <- df%>% #Tem_df() %>%
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60) %>%
           split(f = as.factor(.$site_id))
         # group_by(site_id, .add = TRUE) %>%
         # group_split(.) 
