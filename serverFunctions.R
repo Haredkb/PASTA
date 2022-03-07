@@ -491,13 +491,7 @@ nwisServer <- function(id) {
                     )
                 })
                 
-                
-                ##change view to resutls panel
-                observeEvent(input$gobutton, {
-                  updateTabsetPanel(session, "nwis_calc", #id of tabset in ui, 
-                                    selected = NS(id, 'results_tbl'))
-                })
-                
+
                 #++++++++++++++++++++++++++++++++++++++++#
                 ######## conduct thermal analysis ########
                 #++++++++++++++++++++++++++++++++++++++++#
