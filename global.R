@@ -11,6 +11,9 @@ suppressPackageStartupMessages({
   library(shinybusy) #for spinning icon
   library(timetk)
   library(shinydashboard)
+  library(shinyauthr)#for username and password functionality
+  library(shinyjs)#https://github.com/daattali/shinyjs#overview-main
+  #for hiding and toggling 
   #library(shinycssloaders)
   library(shinyWidgets)
   library(plotly)
