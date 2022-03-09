@@ -126,18 +126,25 @@ ui <- fluidPage(
                                             selectInput(inputId = 'upload_deml', label = 'delimiter', 
                                                          choices = c(Comma=',' ,Semicolon=';'
                                                                      ,Tab='\t', Space= " "), selected = ',')),
+                                        fileInput("upload_water", "Upload raw stream temperature"),
+                               ),
                                             #textInput("upload_deml", "delimiter", placeholder = ",", value = ","),
-                                            fileInput("upload_water", "Upload raw stream temperature")),
+                                            
                               
                                 tabPanel("Upload from HydroShare",
                                #title = "Upload from HydroShare", collapsible = TRUE, collapsed = TRUE,width = 4,
-                                            checkboxInput("upload_water_HS", "Upload data from hydroshare resources", FALSE),
+                               
                                             textInput("resource_id", "CUAHSI Resource ID"),
-                                            shinyauthr::loginUI(id = "login"),
-                                            
+                                            #shinyauthr::loginUI(id = "login"),
+                                            textInput("user_id", "HydroShare user ID"),
+                                            passwordInput("user_pw", "HydroShare password"),
+                                            actionButton("select_water_HS", "Explore HydroShare Data"),
+                                            actionButton("upload_water_HS", "Data File Selected"),
+                                            DT::dataTableOutput("filetable_HS")
+
                                           ),
                                
-                                         
+                               
                                          h4("1b: Choose the columns names that correspond to the correct variables:"),
 
                                             splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
@@ -265,7 +272,7 @@ ui <- fluidPage(
         ##########################################
         )#End User Tab
     )#NavPage
-  )#end fluidpage
+ )#end fluidpage
 
 
 
@@ -282,44 +289,101 @@ server <- function(input, output, session) {
   envCanServer("envCanModule")
   nwisServer("nwisModule")
   
-  ### User Defined with the app file as lots of update input functions
-  #userDefinedServer("user defined inputs")
-  observe({
-    toggle(id = "login", condition = input$upload_water_HS)
-    toggle(credentials(), condition = input$upload_water_HS)
-  })
+  # ### User Defined with the app file as lots of update input functions
+  # #userDefinedServer("user defined inputs")
+  # observe({
+  #   toggle(id = "login", condition = input$upload_water_HS)
+  #   toggle(credentials(), condition = input$upload_water_HS)
+  # })
+  # 
+  # credentials <- shinyauthr::loginServer(
+  #   id = "login",
+  #   data = user_base,
+  #   user_col = user,
+  #   pwd_col = password,
+  #   sodium_hashed = TRUE,
+  #   log_out = reactive(logout_init())
+  # )
   
-  credentials <- shinyauthr::loginServer(
-    id = "login",
-    data = user_base,
-    user_col = user,
-    pwd_col = password,
-    sodium_hashed = TRUE,
-    log_out = reactive(logout_init())
-  )
-  
-  logout_init <- shinyauthr::logoutServer(
-    id = "logout",
-    active = reactive(credentials()$user_auth)
-  )
-  
-  
+  # logout_init <- shinyauthr::logoutServer(
+  #   id = "logout",
+  #   active = reactive(credentials()$user_auth)
+  # )
   #STEP 1 - User stream temperature 
-  user_data <-  eventReactive(input$upload_water, {
+  ###NOTE USER DATA IS USED TWICE - only one should have data. but also should be able to over write due to the "action" required. 
+
+  ##############
+  #retrieve hydroshare data
+  inFile_ls <-eventReactive(input$select_water_HS,{ 
+          
+    filelist_retrieval(resource_id,input$user_id, input$user_pw)
+                                    #credentials()$info$user, credentials()$info$password)
+    }, ignoreInit = TRUE)
+  
+  observeEvent(input$select_water_HS,{ 
+    output$filetable_HS <- DT::renderDataTable(
+    inFile_ls(), server = TRUE, selection = 'single', #only one right now to not have to deal with potenital different structures
+    caption = 'Files Available from specified HydroShare resource id')}
+    , ignoreInit = TRUE)
+  
+
+  # v <- reactiveValues(data2=NA)
+  # 
+  # output$doesitexist <- renderText({
+  #   if (is.na(v$data2)) "No, it doesn't exist" else "Yes, it does exist"
+  # })
+  # 
+  # observeEvent(input$simulate, { v$data2 <- data.frame(x=1)}
+  #)
+  
+  #userdata if hydroshare
+  user_data_2 <-  eventReactive(input$upload_water_HS,{
+    row_val = input$filetable_HS_rows_selected
+    files <- inFile_ls()[row_val,]
+    inFile_ls() <- NULL # attempt to remove table after no longer necessary
+    
+    #retrieve selected file
+    file_retrieval <- lapply(files$url, function(file_url) #only one table allowed right now
+    {
+      file_retrieve_response = GET(file_url, authenticate(username, password, type = "basic"))
+      file_ls <- content(file_retrieve_response)
+      
+      
+    })
+    
+    file_df<- as.data.frame(file_retrieval)
+    })
+  
+  #####
+  # CSV upload
+  #####
+  
+  user_data_1 <-  eventReactive(input$upload_water, {
     # input$file1 will be NULL initially. After the user selects
     # and uploads a file, it will be a data frame with 'name',
     # 'size', 'type', and 'datapath' columns. The 'datapath'
     # column will contain the local filenames where the data can
     # be found.
+    
     inFile <- input$upload_water
     
     if (is.null(inFile))
       return(NULL)
     
-    read.csv(inFile$datapath, skip = input$colnm_row -1, sep = input$upload_deml)
-  }
-  )
+    file_df <-read.csv(inFile$datapath, skip = input$colnm_row -1, sep = input$upload_deml)
+  })
   
+#to allow for two separate methods to get to one user data   
+user_data <- eventReactive(c(input$upload_water,input$upload_water_HS),ignoreInit = T,{
+  if (is.null(user_data_1())){
+    user_data_2()
+  }else{
+    user_data_1()
+  }
+})
+  
+  
+##################################################  
   #create initial dataframe for column selection 
   output$user_datainput <-DT::renderDataTable(
     user_data(), server = TRUE, selection = list(target = 'column'),

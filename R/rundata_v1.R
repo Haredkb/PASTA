@@ -4,25 +4,17 @@
 #could be useful https://stackoverflow.com/questions/35720660/how-to-use-an-r-script-from-github
 
 ### load and install packages
-#
 # install.packages("dataRetrieval")
 library(dataRetrieval)
-
 # install.packages("tidyverse")
 library(tidyverse)
-# 
 # # install.packages("ggplot2")
 # library(ggplot2)
-
 library(lubridate)
-
-#https://www.jumpingrivers.com/blog/personal-r-package/
+#http://www.jumpingrivers.com/blog/personal-r-package/
 # path = file.path(tempdir(), "AnnualTSignals")
 # usethis::create_package(path)
-
 library(smwrBase) #for water year
-
-
 source("R/paired_annualT_signals.R")
 source("R/stream_thermal_sensitivity.R")
 #source("R/baseflow_regression.R")
@@ -42,7 +34,26 @@ add_waterYear <- function(df_tem){
       return(df_tem)
 }
 
-
+##############
+##Retrieve HydroShare Data
+##########
+filelist_retrieval <- function(resource_id, username, password){
+  
+  #create url
+  filelist_get_url <- paste0("http://www.hydroshare.org/hsapi/resource/", resource_id, "/files") #/?page=1")
+  
+  filelist_response = GET(filelist_get_url, authenticate(username,password, type = "basic"))
+  
+  #read content
+  json_text <- content(filelist_response,"text")
+  json <- content(filelist_response)
+  json$text
+  # Converting content into Dataframe
+  filelist <- jsonlite::fromJSON(json_text)
+  
+  #Create list of available Files
+  files_avail <- as.data.frame(filelist$results)
+}
 ############'
 ### CORE PREP ANALYSIS for Thermal Metrics(TM)
 ############
