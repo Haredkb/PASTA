@@ -1,12 +1,7 @@
-##Plot Function 
-#example
-# plot_reactive <- reactive({
-#   p <- head(mtcars, input$n) %>% 
-#     ggplot(aes(x = wt, y = mpg)) +
-#     geom_point() 
-# })
+####################################
+##Plot Functions
+####################################
 
-#create empty 
 #create df for plot functions
 create_TMplot_df <- function(df){
       p_df <-  df_temp_l <- df%>% #Tem_df() %>%
@@ -88,6 +83,7 @@ plot_TMlm <- function(p_df){
 }
 # 
 
+#plot annual sinusoidal results
 plot_TMas <-function(TM_data){
   p <- ggplot() +
     geom_point(data = TM_data, aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
@@ -98,3 +94,25 @@ plot_TMas <-function(TM_data){
     ylim(0,1.2)+
     theme_bw()
 }
+
+
+###################################
+#Leaflet Functions provided by Zach Johson
+###################################
+
+# Custom functions for leaflet map
+zSetupMap <- function(table){
+  result <- leaflet(data=table) %>% addTiles(group='OpenStreetMap') %>% # create leaflet map & add base layer
+    addProviderTiles(providers$OpenTopoMap,group="OpenTopoMap") %>% # add OpenTopoMap base layer
+    addProviderTiles(providers$Esri.WorldImagery,group="Esri.WorldImagery")
+  return(result)
+} # end fxn
+
+zAddLegend <- function(map,leg.pal,table,data.cols,bins,name,unit){
+  result <- map %>%
+    addLegend('bottomright',pal=colorBin(palette=leg.pal,
+                                         domain=unlist(table[,data.cols]),bins=bins),
+              values=unlist(table[,data.cols]),
+              title=paste0(name,' (',unit,')'), opacity=0.75)
+  return(result)
+} # end fxn

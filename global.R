@@ -25,7 +25,7 @@ suppressPackageStartupMessages({
   #library(dygraphs)
   require("httr")
   require("stringr")
-  
+  require("sf")
   envCan_stations <- read.csv("https://data-donnees.ec.gc.ca/data/substances/monitor/automated-fresh-water-quality-monitoring-and-surveillance-data/auto-water-qual-eau-stations.csv")
   #library(DT)
   source("R/nwis_data_v2.R")

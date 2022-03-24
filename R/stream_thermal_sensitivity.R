@@ -8,9 +8,9 @@ fit_ThermalSens <- function(date, a_temp, w_temp, y){
   
   #create dataframe
   df <- as.data.frame(cbind(unlist(w_temp), unlist(a_temp))) %>%
-    rename("w_temp" = 1, "a_temp" = 2)%>%
+    dplyr::rename("w_temp" = 1, "a_temp" = 2)%>%
     cbind(., date) %>% #date can only be added as.date once the datafram has already been created%>%
-    filter(w_temp > 1)%>% #& a_temp > 0) #still have - stream values
+    dplyr::filter(w_temp > 1)%>% #& a_temp > 0) #still have - stream values
     na.omit()
   
   rownames(df)<-NULL

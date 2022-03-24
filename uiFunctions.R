@@ -257,6 +257,156 @@ nwisUI <- function(id, label = "Automated NWIS") {
   )
 }
 
+##############################################
+##############################################
+##    envCan UI             ###################
+##############################################
+
+norwestUI <- function(id, label = "norwest") {
+  # `NS(id)` returns a namespace function, which was save as `ns` and will
+  # invoke later.
+  ns <- NS(id)
+  
+  
+  tagList(
+    #add_busy_spinner(spin = "radar", position = "full-page", margins = c(10, 20)),
+    ##TABS##
+    # Output: Tabset w/ plot, summary, and table ----
+    tabsetPanel(id = "norW_calc", type = "tabs",
+                tabPanel("Input: Available Stream Sites",
+                         sidebarPanel(
+                           #add_busy_spinner(spin = "cube-grid"),
+                           h2("*UNDER DEVELOPMENT*", style = "color:red"),
+                           strong("STEP 1"),
+                           strong("Choose Basin/Processing Units, note selecting more than 3 can take a while"),
+
+                           #most have been checked but some may need to be changed if url cannot be found
+                           selectInput(ns("NorPU"), "NorWeST Processing Units", multiple = TRUE, 
+                                       choices = c("Arizona" = "Arizona",
+                                                   "Black Hills"  = "BlackHills",
+                                                   "Central California" = "CentralCalifornia",
+                                                   "Colorado" = "Colorado",
+                                                   "Clearwater River Basin" = "Clearwater",
+                                                   "Coastal California" = "CoastalCalifornia",
+                                                   "Eastern Montana" = "eastern-montana",
+                                                   "Lahontan Basin"= "Lahontan", 
+                                                   "MidColumbia" = "MidColumbia",
+                                                   "MidSnake"= "MidSnake",
+                                                   "New Mexico" = "NewMexico",
+                                                   "Northern California Coastal Klamath" = "NorthCaliforniaCoastalKlamath",
+                                                   "Oregon Coast" = "OregonCoast",
+                                                   "Salmon River Basin" = "Salmon",
+                                                   "Missouri Headwaters" = "MissouriHW",
+                                                   "Snake-Bear" = "SnakeBear",
+                                                   "South-Central Oregon" = "SouthCentralOregon",
+                                                   "SpoKoot" = "Spokoot",
+                                                   "Upper Columbia-Yakima" = "UpperColumbiaYakima",
+                                                   "Upper Green-North Platte",
+                                                   "Upper Missouri - Marias" = "MariasMissouri",
+                                                   "Upper Yellowstone-Bighorn" = "UpperYellowstoneBighorn",
+                                                   "Utah" = "Utah",
+                                                   "Washington Coast" = "WashingtonCoast")
+                           ),
+     
+
+                           actionButton(
+                             inputId = ns("getData"),
+                             label = "Get Data"),
+                           p("Can take a few minutes, especially for multiple sites"),
+                           hr(),
+                           
+                           ###set parameter choices
+                                                      hr(),
+                           
+                           h3("STEP 2"),
+                           h4('Select the sites of interest from the adjacent table, then press calculate metrics, the results will be shown on the next tab'),
+                           
+                           ##add action button so thermal parameter run only happens after user is ready
+                           actionButton(inputId = ns("gobutton"),label = "Calculate Thermal Metrics",
+                                        style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
+                           
+                           
+                           ##move the progress bar
+                           tags$head(tags$style(
+                             HTML(".shiny-notification {position:fixed;top: 75% ;left: 50%; }"))),
+                         ),#end sidebar panel
+                         #                      
+                         #                      
+                         #                      
+                         ##main panel with tabs for different output
+                         mainPanel(
+                           h2("Sites with Available Temperature Data"),
+                           textOutput("datafail"),
+                           leafletOutput(ns("dataavailmap")),
+                           downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
+                           dataTableOutput(ns("site_table")),
+                           p()#,
+                           #actionButton("explore", "Update Points")
+                         ),
+                ),#end mainpanel
+                #             
+                tabPanel("Results: Metric Table and Plots",
+                         
+                         h2("Metric Data Table"),
+                         h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                         p("Amp_Ratio is Amplitude Ratio, unitless"),
+                         p("PhaseLag_d is Phase Lag, days"),
+                         h3("Blue columns are associated with air and stream temperature linear regression"),
+                         p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
+                         p("AdjRsqr, is the r2 of the linear fit"),
+                         h3("Please review the literature citations from the information tab to explore how to interpret these data"),
+                         
+                         dataTableOutput(ns("metric_table")),
+                         downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
+                         #plotOutput("AS_plot"),#annual signal plot
+                         #plotOutput("TS_plot"),
+                         leafletOutput(ns("metricmap")),
+                         #p(),
+                         #actionButton("recalc", "Update Points")),
+                         
+                         #tabPanel("Summary", verbatimTextOutput("summary"))
+                ),
+                tabPanel("Data Plots",
+                         "Annual Temperature Signal Data Fit",
+                         #fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                         #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                         plotlyOutput(ns("plot_tempdata")),
+                         downloadButton(ns("downloadSinData"))
+                         #DT::dataTableOutput("user_dataair")
+                ),#end plots panel
+                
+                tabPanel("Results Plots",
+                         "",
+                         #fileInput("upload_water", "Upload Clean Dataframe as csv"),
+                         #checkboxInput("choose_clean_input", "Data File Meets Input Criteria (see requirements below)"),
+                         fluidRow(
+                           splitLayout(cellWidths = c("50%", "50%"), plotlyOutput(ns("plot_TAS")),#Temperature ANnual Signals
+                                       plotlyOutput(ns("plot_TS"))))
+                         #DT::dataTableOutput("user_dataair")
+                )
+    ),#end page1
+    
+  )
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # userDefinedUI <- function(id, label = "User Defined Input") {
 #   # `NS(id)` returns a namespace function, which was save as `ns` and will

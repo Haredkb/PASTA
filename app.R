@@ -14,54 +14,114 @@ user_base <- tibble::tibble(
 # Use the module in an application
 ui <- fluidPage(
 
-  theme = shinytheme("cosmo"),
-  setBackgroundColor(color = "ghostwhite"),
+  #theme = shinytheme("yeti"),
+  #setBackgroundColor(color = "ghostwhite"),
   #use of shinydashboard items without a dashboard - I use for 'box' package
   useShinydashboard(),
   
   navbarPage(#selected = "NWIS Stream Data",
              ###APP TITLE###
              "PASTA: Paired Air and Stream Temperature Analysis",
+             theme = "paper.css",
+             #footer = includeHTML("./www/include_footer.html"),
+             
         
         ##-------Info-----------######
         
         tabPanel(
           "Information Page",
-          # setBackgroundImage(
-          #   src = "img_NC.jpg"),
-          box(title = "Paired Air and Stream Temperature Analysis (PASTA)", width = 10, offset = 4,
-              #background = "white" ,
-              
-              status = "primary",
-                                       tags$h3("Analysis Infomation and Overview"),
-                                       
-                                       tags$p("**********UNDER DEVELOPMENT****************"),
-                                       tags$p("**********FOR TEST APPLICATION ONLY********"),
+          
 
-                                       tags$p("Utlize the tabs on the top to select the source of stream temperature data: current options are NWIS, select Environmental Canada Data, and CSV inputs(User-defined data).", "The analyses conducted use the correlation between air and stream temperature to support interferences about hydrologic processes."),
-                                       tags$p("Two analyses are performed: ", tags$br(), "(1) Annual Signal Analysis, where the daily stream and air mean temperatureare fit to a sinusoid, and the compartive metrics are extracted - Amplitude Ratio, Phase lag (days), and Mean Ratio (e.g. Johnson et al. 2020, Hare et al. 2021)", tags$br()),
-                                       tags$p("(2) Daily (or weekly) mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016) "),
-                                       tags$hr(),
-                                       tags$h3("Citations:"),
-                                       tags$p("Hare, DK, Helton AM, Johnson ZC, Lane JW, and Briggs MA (2021) Continental-scale analysis of shallow and deep groundwater contributions to streams. Nature Communications 12, 1450. https://doi.org/10.1038/s41467-021-21651-0", tags$br()),
-                                       tags$p("Johnson, ZC, BG Johnson, MA Briggs, WD Devine, CD Snyder, NP Hitt, DK Hare, TV Minkova (2020). Paired air-water annual temperature Patterns reveal hydrogeological controls on stream thermal regimes at watershed to continental scales. Journal of Hydrology. https://doi.org/10.1016/J.JHYDROL.2020.124929", tags$br()),
-                                       tags$p("Kelleher, C., Wagener, T., Gooseff, M., McGlynn, B., McGuire, K., Marshall, L., 2012. Investigating controls on the thermal sensitivity of Pennsylvania streams. Hydrol. Process. 26, 771 https://doi.org/10.1002/hyp.8186", tags$br()),
-                                       tags$p("Letcher, B.H., Hocking, D.J., Neil, K.O., Whiteley, A.R., Nislow, K.H., Donnell, M.J.O., 2016. A hierarchical model of daily stream temperature using air-water temperature synchronization , autocorrelation , and time lags. PeerJ https://doi.org/10.7717/Peerj.1727", tags$br()),
-                                       tags$p("Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840", tags$br()),
+          fluidRow(
+            HTML("
+                                     
+                                     <section class='banner'>
+                                     <h2 class='parallax'>PASTA</h2>
+                                     <p class='parallax_description'>A tool for the calculation of 
+                                     paired air/water signal metrics</p>
+                                     </section>
+                                     ")
+          ),
+          
+          fluidRow(
+            column(3),
+            column(6,
+                   shiny::HTML("<br><br><center> <h1>Analysis Infomation and Overview</h1> </center><br>"),
+                   shiny::HTML("<h4>Utlize the tabs on the top to select the source of stream temperature data: current options are NWIS, 
+                                select Environmental Canada Data, and user uploads from direct upload or HydroShare resources.
+                               The analyses conducted use the correlation between air and stream temperature 
+                               to support interferences about hydrologic processes. Two analyses are performed: 
+                               (1) Annual Signal Analysis, where the daily stream and air mean temperatureare fit to a sinusoid, and the 
+                               compartive metrics are extracted - Amplitude Ratio, Phase lag (days), and Mean Ratio (e.g. Johnson et al. 2020, Hare et al. 2021)
+                               (2) Daily (or weekly) mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016)
+                               <br><br>CURRENTLY UNDER DEVELOPMENT AND FOR TEST APPLICATION ONLY </h4>")
+            ),
+            column(3)
+          ),
+          fluidRow(
+            
+            style = "height:50px;"),
+          
+          # PAGE BREAK
+          tags$hr(),
+          
+          # WHERE
+          fluidRow(
+            column(1),
+            column(10,
+                   shiny::HTML("<br><br><center> <h1>Citations</h1> </center><br>"),
+                   shiny::HTML("<h4> Hare, DK, Helton AM, Johnson ZC, Lane JW, and Briggs MA (2021) Continental-scale analysis of shallow and deep groundwater contributions to streams. Nature Communications 12, 1450. https://doi.org/10.1038/s41467-021-21651-0
+                   <br>
+                   <br>
+                                      Johnson, ZC, BG Johnson, MA Briggs, WD Devine, CD Snyder, NP Hitt, DK Hare, TV Minkova (2020). Paired air-water annual temperature Patterns reveal hydrogeological controls on stream thermal regimes at watershed to continental scales. Journal of Hydrology. https://doi.org/10.1016/J.JHYDROL.2020.124929
+                                      <br>
+                                      <br>
+                                     Kelleher, C., Wagener, T., Gooseff, M., McGlynn, B., McGuire, K., Marshall, L., 2012. Investigating controls on the thermal sensitivity of Pennsylvania streams. Hydrol. Process. 26, 771 https://doi.org/10.1002/hyp.8186
+                                     <br>
+                                     <br>
+                                     Letcher, B.H., Hocking, D.J., Neil, K.O., Whiteley, A.R., Nislow, K.H., Donnell, M.J.O., 2016. A hierarchical model of daily stream temperature using air-water temperature synchronization , autocorrelation , and time lags. PeerJ https://doi.org/10.7717/Peerj.1727
+                                     <br>
+                                     <br>
+                                     Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840
+                               .</h4>")
+            ),
+            column(1)
+          ),
+          
+          # PAGE BREAK
+          tags$hr(),
+          
+          fluidRow(
+            
+            style = "height:50px;"),
+          
+          fluidRow(
+            column(1),
+            column(10,
+                   shiny::HTML("<br><br><center> <h1></h1> </center><br>"),
+                   shiny::HTML("<h5>Developed with Funding provided by CUAHSI's Hydroinformatics Innovation Fellowship<br>
+		Created by: Danielle Hare<br>
+		Contact Info: danielle.hare@uconn.edu<br>.</h5>
+        
+                    <a href=https://www.cuahsi.org/>
+                        <img src = logo_cuahsi.png width = 400px height = auto> 
+                     .</a>
+     			<a href=https://www.hydroshare.org/>
+      				<img src = logo-hs.png width = 400px height = auto>.</a>
 
+            <p>Disclaimer: The authors assume no responsibility or liability for any errors or omissions in the content of this site. We recommend consulting with subject-matter experts for the interpretation of output data in regard to a user's particular data and context. 
+                <br>2022 PASTA: Paired Air and Stream Temperature Analysis
+                               </p>")
+            ),
+            column(1)
+          ),
+          fluidRow(
+            
+            style = "height:50px;"),
+          
+          # PAGE BREAK
+          tags$hr(),
 
-                                       tags$hr(),
-                                       tags$p("Developed with Funding provided by CUAHSI's Hydroinformatics Innovation Fellowship"),
-                                       tags$br(),
-                                       tags$p("Created by Danielle Hare"),
-                                       tags$p("Contact: danielle.hare@uconn.edu"),
-          )#end box
-                   
-# includeText("include.txt"),
-                   # hr(),
-                   #shiny::includeText("Citation_Text.txt")
-                   
-                   
             ),#end info tab panel
         
         ##-------NWIS-----------#####
@@ -74,6 +134,11 @@ ui <- fluidPage(
             tabPanel("Environment Canada Data",
                   envCanUI("envCanModule")
                 ),
+        
+        ##------NorWeST---------#####
+        tabPanel("NorWeST Stream Data",
+                 norwestUI("norwestModule")
+        ),
 
         ##------User-defined Tab-------###########
              #To create a moduler from these data it would require much updating due to the mulitple "UpdateSelectInput" functionality
@@ -84,7 +149,7 @@ ui <- fluidPage(
         ## User Data Tab 
         ###################################
             tabPanel(
-                 "User-defined Data",
+                 "Upload Data: HydroShare or Table",
                  add_busy_bar(color = "red", height = "8px"),
                  tabsetPanel(id = "user_calc", type = "tabs",
                              
@@ -103,35 +168,36 @@ ui <- fluidPage(
                             headerPanel("Data Wrangling for User-Data"),
                             
                             fluidRow(
-                              div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
+                              strong("Follow these steps in order to conduct thermal metric analysis.
+                                      Required datasets are stream temperature dataaset (multiple sites allowed),
+                                      and site location dataset with matching site ids, csvs are required.  
+                                      Stream datasets require columns: site ID, stream temperature, date (or date time, but only put date attributed in date input format).
+                                      Uploads can take some time please be patient."),
+                              hr(),
+                              
+                              #div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
                               useShinyjs(),
                               #--------------------------------------------------#
                               # Box 1 for Stream Temperature
                               #--------------------------------------------
-                              tabBox(title = "Step 1: Upload Stream Temperature Data", width = 4,
-                                     id = "streamUpload",
-                                
+                              column(width = 4,
+                              tabBox(title = "Step 1: Upload Stream Temperature Data",
+                                     id = "upload_tab",
+                                     #status = "primary",
                                   ##Content of Box 1
-                               strong("Follow these steps to conduct thermal metric analysis.
-                                      Required datasets are stream temperature dataaset (multiple sites allowed),
-                                      and site location dataset with matching site ids, csvs are required. Uploads 
-                                      can take some time please be patient"),
-                               hr(),
-                              
-                                h4("1a: Upload stream temperature dataset from direct upload or HydroShare Resource (required columns: site ID, stream temperature, date (or date time)),
-                                            upload can take a moment"),
-                               tabPanel("Upload Table",
+                               tabPanel("Table",
                                          splitLayout(cellWidths = c("50%", "50%"),
                                             numericInput("colnm_row", "Header Row", value = 1),
                                             selectInput(inputId = 'upload_deml', label = 'delimiter', 
                                                          choices = c(Comma=',' ,Semicolon=';'
                                                                      ,Tab='\t', Space= " "), selected = ',')),
-                                        fileInput("upload_water", "Upload raw stream temperature"),
+                                        
+                                        fileInput("upload_water", "Upload raw stream temperature")
                                ),
                                             #textInput("upload_deml", "delimiter", placeholder = ",", value = ","),
                                             
                               
-                                tabPanel("Upload from HydroShare",
+                                tabPanel("HydroShare",
                                #title = "Upload from HydroShare", collapsible = TRUE, collapsed = TRUE,width = 4,
                                
                                             textInput("resource_id", "CUAHSI Resource ID"),
@@ -139,13 +205,14 @@ ui <- fluidPage(
                                             textInput("user_id", "HydroShare user ID"),
                                             passwordInput("user_pw", "HydroShare password"),
                                             actionButton("select_water_HS", "Explore HydroShare Data"),
+                                            #checkboxInput("activate_HS", "Use HydroShare Data"),
                                             actionButton("upload_water_HS", "Data File Selected"),
+                               
                                             DT::dataTableOutput("filetable_HS")
 
                                           ),
-                               
-                               
-                                         h4("1b: Choose the columns names that correspond to the correct variables:"),
+                              ),
+                              box(title ="1b: Choose the columns names that correspond to the correct variables:", status = "primary",
 
                                             splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
 
@@ -165,20 +232,25 @@ ui <- fluidPage(
                                          actionButton("colselect", "Tidy Stream Temperature Table"),
                                hr()
                               ),#close box for step 1
-                           
+                              ),#close column 1
 
                             #--------------------------------------------------#
                             # Box 2 for Stream Location 
                             #--------------------------------------------
-                            box(title = "Step 2: Site Location Data ", width = 4, status = "primary",
+                            box(title = "Step 2: Site Location Data ", id = "upload_loctab", width = 4,
+                                 ##Location Dataset
+                                           splitLayout(cellWidths = c("25%", "25%", "50%"),
+                                                       numericInput("colnm_row_loc", "Header Row", value = 1),
+                                                       selectInput(inputId = 'upload_deml_loc', label = 'delimiter', 
+                                                                   choices = c(Comma=',' ,Semicolon=';'
+                                                                               ,Tab='\t', Space= " "), selected = ','),
+                                                       fileInput("upload_loc", "2a. Enter Stream Location Data (csv)")),
+                                         
+                                        p("Can be the same datatable as Stream Temperature data input, location datum must be WGS84 lat/long"),
+                                        hr(),
 
-                                           ##Location Dataset - can read in same Temperature file if that where it exists? 
-                                                #h4("2a. Enter Stream Location Data (csv)"),
-                                          fileInput("upload_loc", "2a. Enter Stream Location Data (csv)"),
-                                          p("Can be the same datatable as Stream Temperature data input, location datum must be WGS84 lat/long"),
-                               
-                                         h4("2b: Choose the columns names that correspond to the correct variables:"),
-                                         splitLayout(
+                                        strong("2b: Choose the columns names that correspond to the correct variables:"),
+                                        splitLayout(
                                            selectInput("IDloc_colnm", "Site ID", choices = NULL), #needs to be distinct from ID id above
                                            selectInput("lat_colnm", "Latitude column", choices = NULL),
                                            selectInput("long_colnm", "Longitude column", choices = NULL)
@@ -288,6 +360,7 @@ server <- function(input, output, session) {
   #External Server
   envCanServer("envCanModule")
   nwisServer("nwisModule")
+  norwestServer("norwestModule")
   
   # ### User Defined with the app file as lots of update input functions
   # #userDefinedServer("user defined inputs")
@@ -326,7 +399,7 @@ server <- function(input, output, session) {
     caption = 'Files Available from specified HydroShare resource id')}
     , ignoreInit = TRUE)
   
-
+# if(input$upload_tab)
   # v <- reactiveValues(data2=NA)
   # 
   # output$doesitexist <- renderText({
@@ -335,54 +408,47 @@ server <- function(input, output, session) {
   # 
   # observeEvent(input$simulate, { v$data2 <- data.frame(x=1)}
   #)
-  
+# if(isolate(input$activate_HS)){
   #userdata if hydroshare
-  user_data_2 <-  eventReactive(input$upload_water_HS,{
-    row_val = input$filetable_HS_rows_selected
-    files <- inFile_ls()[row_val,]
-    inFile_ls() <- NULL # attempt to remove table after no longer necessary
-    
+  
+  
+  user_data <-  eventReactive(c(
+    input$upload_water_HS,
+    input$upload_water),
+    {
+    #req(is.null(df()))
+    if (input$upload_tab == 'HydroShare'){ 
+ 
+        row_val = input$filetable_HS_rows_selected
+        print(row_val)
+        files <- inFile_ls()[row_val,]
+
     #retrieve selected file
     file_retrieval <- lapply(files$url, function(file_url) #only one table allowed right now
     {
       file_retrieve_response = GET(file_url, authenticate(username, password, type = "basic"))
       file_ls <- content(file_retrieve_response)
-      
-      
     })
+
+    file_df<- as.data.frame(file_retrieval)}
     
-    file_df<- as.data.frame(file_retrieval)
-    })
-  
-  #####
-  # CSV upload
-  #####
-  
-  user_data_1 <-  eventReactive(input$upload_water, {
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, it will be a data frame with 'name',
-    # 'size', 'type', and 'datapath' columns. The 'datapath'
-    # column will contain the local filenames where the data can
-    # be found.
-    
-    inFile <- input$upload_water
-    
-    if (is.null(inFile))
-      return(NULL)
-    
-    file_df <-read.csv(inFile$datapath, skip = input$colnm_row -1, sep = input$upload_deml)
-  })
-  
-#to allow for two separate methods to get to one user data   
-user_data <- eventReactive(c(input$upload_water,input$upload_water_HS),ignoreInit = T,{
-  if (is.null(user_data_1())){
-    user_data_2()
-  }else{
-    user_data_1()
-  }
-})
-  
-  
+    else{
+      # input$file1 will be NULL initially. After the user selects
+      # and uploads a file, it will be a data frame with 'name',
+      # 'size', 'type', and 'datapath' columns. The 'datapath'
+      # column will contain the local filenames where the data can
+      # be found.
+
+      inFile <- input$upload_water
+
+      if (is.null(inFile))
+        return(NULL)
+
+      file_df <-read.csv(inFile$datapath, skip = input$colnm_row -1, sep = input$upload_deml)
+    }
+    }
+    )
+
 ##################################################  
   #create initial dataframe for column selection 
   output$user_datainput <-DT::renderDataTable(
@@ -394,14 +460,16 @@ user_data <- eventReactive(c(input$upload_water,input$upload_water_HS),ignoreIni
   colnm_input <- c("T_colnm", "ID_colnm", "date_colnm")
   
   #update all the colnames choices for user to select correct match
-  observe(lapply(colnm_input, function(x){
+  observe(
+    lapply(colnm_input, function(x){
     updateSelectInput(session, x,
                       #label = paste("Select input label", length(x)),
                       choices = names(user_data())#,#[,input$user_datainput_columns_selected]),#therefore columns dont need to be selected
                       #selected = tail(x, 1)
     )
-  }
+      }
   )#end lapply
+  #, suspended = TRUE #start in suspensed state
   )#end observe 
   
   #Update stream temperature (sTem) dataframe to clean consistent format
@@ -433,17 +501,17 @@ user_data <- eventReactive(c(input$upload_water,input$upload_water_HS),ignoreIni
     
     #convert the input temperature values to celisus 
     df$tavg_wat_C <- sTem_units(df$tavg_wat_C)
-    
+    print(df)
     df
-  })
+    })
   
   # show updated table based on column selected
   observeEvent(input$colselect, { #stream temperature df = sT_df
     #output new table with colums
     output$user_datainput <-DT::renderDataTable(
       sTem_df(), server = TRUE, selection = list(target = 'column'),
-      caption = 'Updated Input Data Table')
-  })
+      caption = 'Updated Input Data Table', )
+  },ignoreInit = TRUE)
   
   ######################################################
   #### Recover Geo data for Daymet and Plotting Purposes
@@ -459,7 +527,7 @@ user_data <- eventReactive(c(input$upload_water,input$upload_water_HS),ignoreIni
     if (is.null(inFile))
       return(NULL)
     
-    read.csv(inFile$datapath)
+    read.csv(inFile$datapath, skip = input$colnm_row_loc -1, sep = input$upload_deml_loc)
   }
   )
   

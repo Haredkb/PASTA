@@ -707,3 +707,365 @@ nwisServer <- function(id) {
     }
     )#end module server
   }#end nwisServer
+
+
+
+
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                             NorWeST SERVER                          ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+norwestServer <- function(id) {
+  moduleServer(
+    id,
+    ## Below is the module function
+    function(input, output, session) {
+      
+      #Define Stations to choose
+      nor_list <- eventReactive(input$getData, {
+        print(input$NorPU)
+        getNorwestData(input$NorPU)
+      })
+      
+      stations_df <- reactive({
+        data.frame(nor_list()[[2]])%>%
+          dplyr::select(PERMA_FID, GNIS_NAME, lat, long, SampleYear)%>%
+          dplyr::mutate(PERMA_FID = as.factor(PERMA_FID))%>%
+          group_by(PERMA_FID)%>%
+          dplyr::summarise(name = first(GNIS_NAME),
+                           latitude = mean(lat),
+                           longitude = mean(long),
+                           start = min(SampleYear),
+                           end = max(SampleYear))
+      })
+      
+      df <- reactive({
+        data.frame(nor_list()[[1]])%>%
+          dplyr::mutate(PERMA_FID = as.factor(PERMA_FID),
+                        date = SampleDate,
+                        tavg_wat_C = DailyMean)%>%
+          dplyr::select(PERMA_FID, date, tavg_wat_C)
+      })
+      
+      #   #Create Table - use this to select sites to analyze
+      output$site_table <- renderDataTable({
+        #Tem_df()
+        stations_df()
+      })
+      
+      #   
+      #   #################################################################
+      #   ##                   Downloading Air - in Norwest part of Data Analysis        ##
+      #   #################################################################
+      #   #-----------------------------------------------#
+      #   #       Map Extent vs. State Selection          #
+      #   #-----------------------------------------------#
+      
+      Tem_df <- eventReactive(
+        #rerun when button is pressed
+        input$gobutton,{ #https://stackoverflow.com/questions/46521026/r-shiny-action-button-and-data-table-output
+          
+          #Conduct NWIS thermal analysis 
+          #using selected rows from site table
+          
+          s = input$site_table_rows_selected #indices of the selected rows
+          
+          ##create list of site names to be used in nwis analysis 
+          if(length(s)>1){ #less than one cannot use pull 
+            site_table_s <- stations_df()[s, , drop = TRUE] %>% #create dataframe with only the selected rows
+              pull("PERMA_FID")#extract site id column as a vector
+          } else if (length(s) == 1){
+            site_table_s <- stations_df()[s,]$PERMA_FID
+          } else if (!exists(s)){
+            output$datafail <- renderText({
+              h2(paste0("No sites selected - please select a row"), style = "colour:red")
+            })
+          } else{ #should catch other problems
+            site_table_s <- stations_df()[s,]$PERMA_FID
+          }
+          
+          sites <- unique(site_table_s)
+          
+          data <- df()%>%
+            dplyr::filter(PERMA_FID %in% sites)%>%
+            dplyr::rename("site_id" = "PERMA_FID")
+            
+          
+        #make table to get air temp data from daymet
+        loc_df <- stations_df() %>%
+          dplyr::filter(PERMA_FID %in% sites)%>%
+          dplyr::select(-name)%>% #to get in the right format for daymet
+          group_by(PERMA_FID)%>%
+          dplyr::mutate(start = as.Date(paste0(start,"-01-01")),
+                    end =as.Date(paste0(end,"-12-30")))%>%
+          dplyr::rename(site_id = PERMA_FID)%>% #daily values
+          mutate_at(vars(contains('date')), ~ as.Date(., "%Y-%m-%d"))
+
+        #run batch collection from daymet
+        aTem <- batch_daymet(loc_df)
+        #clean data and pull out avgdaily air temperature
+        aTem <- clean_daymet(aTem)%>%
+          dplyr::select(site_id, date, tavg_air_C)
+
+        #join air and stream temperature data to make data frame
+        output <- left_join(data, aTem, by = c("site_id", "date"))%>%
+          na.omit() %>%#clean out temperatures that are not paired
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)%>% #out of range.
+          dplyr::select(site_id, date, tavg_wat_C, tavg_air_C)
+        
+        print(output)
+        return(output)
+      })
+      
+      #
+
+      
+      ##Download Metric Output Table
+      output$download_rawdata <- downloadHandler(
+        filename = function() {
+          paste("RawData_NorWeST.csv")
+        },
+        content = function(file) {
+          write.csv(Tem_df(), file, row.names = FALSE)
+        }
+      )
+      
+      #   
+      #   
+      #   #------------------------------------------------------------------------#
+      #   #### Map for exploratory analysis of the data available for each state####
+      #   #========================================================================#
+      #   
+      #Create points for plotting
+      points_explore <- reactive({
+        df <- stations_df()#%>%
+          #dplyr::select(LATITUDE, LONGITUDE, STATION_NO, STATION_NAME)%>%#create simple dataframe with lat and long first #THIS IS LONG AND WHEN DATA IS DOWNLOADED ITS LON (?)
+          #rename("lat" = LATITUDE, "lng" = LONGITUDE)
+      })
+      # 
+      # ##Create the output map with the available stream temperature data
+      output$dataavailmap <- renderLeaflet({
+        lat_min <- min(points_explore()$latitude)
+        lat_max <- max(points_explore()$latitude)
+        lng_min <- min(points_explore()$longitude)
+        lng_max <- max(points_explore()$longitude)
+
+        leaflet(options = leafletOptions(zoomSnap = 0.25, zoomDelta=0.25)) %>%
+          addTiles() %>%
+          addCircleMarkers(data = points_explore(),
+                           label = paste(points_explore()$PERMA_FID, "//", points_explore()$name)) #make a false point so the zoom works when adding points
+
+      })
+      
+      #
+      
+      # #   
+        observeEvent(input$getData, {
+
+          leafletProxy("dataavailmap")   %>%
+            clearShapes() %>%
+            #clearBounds() %>%
+            clearMarkers()%>%
+            addCircleMarkers(data = points_explore(), label = c(points_explore()$PERMA_FID, points_explore()$name)) #%>%
+            #fitBounds(lat1 = lat_min, lat2 = lat_max, lng1 = lng_min, lng2 = lng_max))
+        })
+
+      #
+        ##highlights points based on user selected rows
+        observeEvent(input$site_table_rows_selected, {
+          row_selected = points_explore()[input$site_table_rows_selected,]
+          proxy <- leafletProxy("dataavailmap")
+          print(row_selected)
+          proxy %>%
+            addCircleMarkers(#popup=as.character(row_selected$mag),
+              #layerId = as.character(row_selected$id),
+              lng=row_selected$longitude,
+              lat=row_selected$latitude,
+              color = "red",
+              label = row_selected$name
+              #icon =
+            )
+        })
+
+
+        # ##change view to resutls panel
+        observeEvent(input$gobutton, {
+          updateTabsetPanel(session, "norW_calc", #id of tabset in ui,
+                            selected = "Results: Metric Table and Plots")
+        })
+      #   
+      #++++++++++++++++++++++++++++++++++++++++#
+      ######## conduct thermal analysis ########
+      #++++++++++++++++++++++++++++++++++++++++#
+      
+      TM_data <- eventReactive(
+        #rerun when button is pressed
+        input$gobutton,{
+          TMy_output(Tem_df) #create yearly annual signal analysis 
+        })
+      
+      # Create output table
+      output$metric_table <-DT::renderDT({
+        datatable(TM_data()) %>% formatStyle(
+          c('AmpRatio', "PhaseLag_d"),
+          backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced
+          formatStyle(
+            c('TS__Slope', "AdjRsqr"),
+            backgroundColor = 'lightblue')
+        
+      })
+      
+      ##Download Metric Output Table
+      output$downloadData <- downloadHandler(
+        filename = function() {
+          paste("ThermalMetrics_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(TM_data(), file, row.names = FALSE)
+        }
+      )
+      #
+      
+      ###########################'
+      ###########################'
+      ##      PLOTS #############'
+      ###########################'
+      ###########################'
+      
+      #######
+      #------Plots
+      
+      p_df <- reactive({
+        df_temp_l <- Tem_df()%>% #Tem_df() %>%
+          split(f = as.factor(.$site_id))
+        # group_by(site_id, .add = TRUE) %>%
+        # group_split(.) 
+        
+        saveRDS(df_temp_l, "df_temp_l_envC.RDS")
+        
+        sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+          y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+          z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
+        })%>% 
+          do.call("rbind", .)#make dataframe for sin coefficients
+        
+        saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
+        saveRDS(Tem_df(), "Tem_df_r.RDS")
+        saveRDS(TM_data(),  "TM_data_envC.RDS")
+        #data
+        p_df <- Tem_df() %>%
+          left_join(., sin_wfit_coef, by = "site_id") %>%
+          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+        
+        #print(p_df)
+        saveRDS(p_df, "p_df.RDS")
+        p_df
+      })
+      
+      output$downloadSinData <- downloadHandler(
+        filename = function() {
+          paste("DataFit_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(p_df(), file, row.names = FALSE)
+        }
+      )
+      
+      output$plot_tempdata <-renderPlotly({
+        p <- ggplot(p_df()) +
+          geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
+          geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
+          geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
+          #ggtitle("test")+
+          xlab("Date")+
+          ylab("Water Temperature (C)")+
+          theme_bw()+
+          facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+        
+        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
+        
+        ggplotly(p, height = rows)
+        
+      })
+      
+      
+      output$plot_TS <-renderPlotly({
+        p <- p_df() %>%
+          dplyr::filter(tavg_wat_C > 1)%>%
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)%>%
+          ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
+          geom_point()+
+          stat_smooth(method = "lm", col = "red")+
+          geom_abline(slope = 1, intercept = 0)+
+          annotate(geom = "text", x = 1, y = 5, label = "1:1", color = "black",
+                   angle = 1)+
+          #ggtitle("test")+
+          scale_color_viridis(discrete=TRUE)+
+          labs(x = "Air Temperature (C)", y= "Water Temperature (C)", colour="Year")+
+          xlim(0, NA)+
+          theme_bw()+
+          facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+        
+        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
+        
+        ggplotly(p, height = rows)
+        
+      })
+      
+      output$plot_TAS <-renderPlotly({
+        p <- ggplot() +
+          geom_point(data = TM_data(), aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
+          #ggtitle("test")+
+          #scale_shape_manual(values=seq(0,15))+
+          scale_color_viridis(discrete=TRUE, option = "turbo")+
+          labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
+          ylim(0,1.2)+
+          theme_bw()
+        
+        ggplotly(p, height = 600)
+        
+      })
+      
+      
+      #   
+      #   
+      #   ##############
+      #   ###MAP DATA###
+      #   ##############
+      #   #dont want to have to press button to update map points - so just reactive not event reactive
+      #   points <- reactive({
+      #     df <- data()%>%
+      #       dplyr::select(LATITUDE, LONGITUDE, site_id)%>%#create simple dataframe with lat and long first
+      #       rename("lat" = LATITUDE, "lng" = LONGITUDE)
+      #   })
+      #   
+      #   
+      #   output$metricmap <- renderLeaflet({
+      #     leaflet() %>%
+      #       addTiles() %>%
+      #       #addProviderTiles("Esri.WorldImagery", group = "Esri.WorldImagery") %>%
+      #       addCircleMarkers(data = points(), label = points()$site_id) 
+      #     #addLayersControl(baseGroups = c(as.character(providers$Stamen.TonerLite), "Esri.WorldImagery"))
+      #   })
+      #   
+      #   ##attempt at highlighting points selected rows
+      #   observeEvent(input$metric_table_rows_selected, {
+      #     row_selected = points()[input$metric_table_rows_selected,]
+      #     proxy <- leafletProxy("metricmap")
+      #     print(row_selected)
+      #     proxy %>%
+      #       addCircleMarkers(#popup=as.character(row_selected$mag),
+      #         #layerId = as.character(row_selected$id),
+      #         lng=row_selected$lng, 
+      #         lat=row_selected$lat,
+      #         color = "red", label = row_selected$site_id
+      #         #icon = 
+      #       )
+      #   })
+    }
+  )#end module server
+}#end enCanServer
+

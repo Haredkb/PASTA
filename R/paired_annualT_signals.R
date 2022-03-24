@@ -87,7 +87,7 @@ fit_TAS <- function(date, temp){
   
   df <- as.data.frame(unlist(temp)) %>%
     cbind(., date) %>%#has to be done second to keep format (?)
-    rename("temp" = 1)
+    dplyr::rename("temp" = 1)
   
   #convert to radian date for sinsoidal extract
   df$rday <- rad_day(df$date)

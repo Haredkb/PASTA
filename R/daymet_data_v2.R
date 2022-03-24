@@ -95,10 +95,10 @@ clean_daymet <- function(daymet_output){
   # 
   ##clean daymet data 
   daymet_clean <- daymet_output %>%
-      rename("site_id" = "site") %>%
-      filter(measurement %in% temp_var) %>%
+      dplyr::rename("site_id" = "site") %>%
+      dplyr::filter(measurement %in% temp_var) %>%
       spread(measurement, value) %>%
-      mutate(
+      dplyr::mutate(
         tavg_air_C = (tmax..deg.c. + tmin..deg.c.)/2, #name the daily air temperature average tavg_air_C
         date = ymd(paste0(as.character(year),"-01-01")) + days(yday -1)
       )
