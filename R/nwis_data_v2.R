@@ -32,12 +32,13 @@ library(lubridate)
         ### Download Stream Temperature- needs to be done seperate from 00060 pCode for Baseflow
           df_stream <- tryCatch( ##need to put in if statment so only runs if temp is available and Q runs if is there but not required. 
             {
+              
             df <- readNWISdv(siteNumbers = siteNo,
                                     parameterCd = pCode,
                                     startDate = start.date,
                                     endDate = end.date)%>%
               dplyr::select(-contains("cd"))%>%
-              rename(tavg_wat_C = "X_00010_00003",
+              dplyr::rename(tavg_wat_C = "X_00010_00003",
                      "site_id" = "site_no",
                      "date" = "Date")%>%
               filter(tavg_wat_C > 1)%>%

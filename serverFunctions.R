@@ -415,9 +415,9 @@ nwisServer <- function(id) {
                   
                   #DATA UST BE AVAILBLE FOR THE WHOLE RECORD REQUESTED - not just 2 years, range has to be adjusted if less than range is accepatble for analysis 
                   df <- df %>%
-                    filter(as.Date(begin_date) < input$date.range[1])%>%#(input$date.range[2] - years(2))) %>% #minimum 2 years
+                    dplyr::filter(as.Date(begin_date) < input$date.range[1])%>%#(input$date.range[2] - years(2))) %>% #minimum 2 years
                     #filter(between(as.Date(begin_date), input$date.range[1], input$date.range[2])) %>%
-                    filter(end_date > input$date.range[2]) #end date greater than input end date 
+                    dplyr::filter(end_date > input$date.range[2]) #end date greater than input end date 
                   
                   df
                 })
@@ -427,7 +427,7 @@ nwisServer <- function(id) {
                   tbl <- NWIS_sites()%>%
                     dplyr::select(2:3,"begin_date", "end_date", 1, "count_nu")%>%
                     #make column with data missing table (cant do exact years missing yet)
-                    mutate(years_missing = round(as.numeric((difftime(end_date, begin_date, units = c("days"))) - count_nu)/365),1)
+                    dplyr::mutate(years_missing = round(as.numeric((difftime(end_date, begin_date, units = c("days"))) - count_nu)/365),1)
                   
                   datatable(tbl)%>%
                     formatStyle(c('years_missing'),
@@ -443,7 +443,7 @@ nwisServer <- function(id) {
                 points_explore <- reactive({
                   df <- NWIS_sites()%>%
                     dplyr::select(dec_lat_va, dec_long_va, site_no)%>%#create simple dataframe with lat and long first #THIS IS LONG AND WHEN DATA IS DOWNLOADED ITS LON (?)
-                    rename("lat" = dec_lat_va, "lng" = dec_long_va)
+                    dplyr::rename(lat = dec_lat_va, lng = dec_long_va)
                 })
                 
                 ##Create the output map with the available stream temperature data 
@@ -534,22 +534,34 @@ nwisServer <- function(id) {
                                             format(input$date.range[1]), #start date
                                             format(input$date.range[2]))#end date)
                     #list [1] is stream temperature data, and [2] is location information
-                    
-                    if (!exists("nwis_l")) {
+                  
+                    if (is.list(nwis_l) == FALSE) {
                       output$datafail <- renderText({
-                        paste0("Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
-                      })
+                        paste("Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
+                      }) 
                       
-                    }
-                    
-                    return(nwis_l)
+                      }else{
+                        return(nwis_l)
+                      }
                    
                   })
+                
+                # observeEvent(input$gobutton, {
+                #   
+                #     if (!exists(download_data())) {
+                #       output$datafail <- renderText({
+                #         paste0("Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
+                #       })
+                #   
+                # }
+                # })
                 
                   #create dataframe with air and stream temperature 
                 
                 data <- reactive({
-                  print(download_data()[2])
+                  req(download_data())
+                  
+                  head(download_data()[2])
                   print("batch aTem")
                     #get air temperature data
                     aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
@@ -563,7 +575,7 @@ nwisServer <- function(id) {
                       na.omit() %>%
                       dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)
                 
-                    print(df)
+                    #print(df)
                     ## for debugging
                     saveRDS(df, "df_nwis_output.RDS")
                     return(df)
@@ -732,10 +744,10 @@ norwestServer <- function(id) {
       
       stations_df <- reactive({
         data.frame(nor_list()[[2]])%>%
-          dplyr::select(PERMA_FID, GNIS_NAME, lat, long, SampleYear)%>%
+          dplyr::select(PERMA_FID, lat, long, SampleYear)%>% #Same do not have GNIS_NAME,
           dplyr::mutate(PERMA_FID = as.factor(PERMA_FID))%>%
           group_by(PERMA_FID)%>%
-          dplyr::summarise(name = first(GNIS_NAME),
+          dplyr::summarise(#name = first(GNIS_NAME),
                            latitude = mean(lat),
                            longitude = mean(long),
                            start = min(SampleYear),
@@ -791,13 +803,13 @@ norwestServer <- function(id) {
           
           data <- df()%>%
             dplyr::filter(PERMA_FID %in% sites)%>%
-            dplyr::rename("site_id" = "PERMA_FID")
+            dplyr::rename(site_id = PERMA_FID)
             
           
         #make table to get air temp data from daymet
         loc_df <- stations_df() %>%
           dplyr::filter(PERMA_FID %in% sites)%>%
-          dplyr::select(-name)%>% #to get in the right format for daymet
+          #dplyr::select(-name)%>% #to get in the right format for daymet
           group_by(PERMA_FID)%>%
           dplyr::mutate(start = as.Date(paste0(start,"-01-01")),
                     end =as.Date(paste0(end,"-12-30")))%>%
@@ -894,8 +906,10 @@ norwestServer <- function(id) {
         # ##change view to resutls panel
         observeEvent(input$gobutton, {
           updateTabsetPanel(session, "norW_calc", #id of tabset in ui,
-                            selected = "Results: Metric Table and Plots")
+                            selected = NS(id,'results_tbl'))
         })
+        
+        
       #   
       #++++++++++++++++++++++++++++++++++++++++#
       ######## conduct thermal analysis ########
@@ -904,17 +918,18 @@ norwestServer <- function(id) {
       TM_data <- eventReactive(
         #rerun when button is pressed
         input$gobutton,{
-          TMy_output(Tem_df) #create yearly annual signal analysis 
+          TMy_output(Tem_df()) #create yearly annual signal analysis 
         })
       
       # Create output table
       output$metric_table <-DT::renderDT({
-        datatable(TM_data()) %>% formatStyle(
-          c('AmpRatio', "PhaseLag_d"),
-          backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced
-          formatStyle(
-            c('TS__Slope', "AdjRsqr"),
-            backgroundColor = 'lightblue')
+        datatable(TM_data()) %>% 
+            formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+                        backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+            formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
+                        backgroundColor = 'lightblue') %>%
+            formatStyle(c("max_conseq_missing_days"),
+                        backgroundColor = styleInterval(49, c('white', 'orange'))) 
         
       })
       
@@ -958,7 +973,8 @@ norwestServer <- function(id) {
         #data
         p_df <- Tem_df() %>%
           left_join(., sin_wfit_coef, by = "site_id") %>%
-          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)%>%
+          
         
         #print(p_df)
         saveRDS(p_df, "p_df.RDS")
@@ -967,7 +983,7 @@ norwestServer <- function(id) {
       
       output$downloadSinData <- downloadHandler(
         filename = function() {
-          paste("DataFit_envCan.csv")
+          paste("DataFit_NorWeST.csv")
         },
         content = function(file) {
           write.csv(p_df(), file, row.names = FALSE)
@@ -1016,16 +1032,12 @@ norwestServer <- function(id) {
       })
       
       output$plot_TAS <-renderPlotly({
-        p <- ggplot() +
-          geom_point(data = TM_data(), aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
-          #ggtitle("test")+
-          #scale_shape_manual(values=seq(0,15))+
-          scale_color_viridis(discrete=TRUE, option = "turbo")+
-          labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
-          ylim(0,1.2)+
-          theme_bw()
         
-        ggplotly(p, height = 600)
+        ggplotly(plot_TMas(TM_data()), height =600)%>% #px )%>%
+          plotly::layout(legend=list(x=0, 
+                                     xanchor='left',
+                                     yanchor='top',
+                                     orientation='h'))
         
       })
       

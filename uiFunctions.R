@@ -80,15 +80,17 @@ envCanUI <- function(id, label = "envCanada automated") {
     #             
               tabPanel("Results: Metric Table and Plots",
                        
-                       h2("Metric Data Table"),
-                       h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                       h4("Metric Data Table"),
+                       h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                        p("Amp_Ratio is Amplitude Ratio, unitless"),
                        p("PhaseLag_d is Phase Lag, days"),
-                       h3("Blue columns are associated with air and stream temperature linear regression"),
+                       p("Mean_ratio is ratio of average water temperature divided average air temperature"),
+                       h5("Blue columns are associated with air and stream temperature linear regression"),
                        p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                        p("AdjRsqr, is the r2 of the linear fit"),
-                       h3("Please review the literature citations from the information tab to explore how to interpret these data"),
-
+                       p("YInt, is the y intercept of the linear relationship"),
+                       h5("Please review the literature citations from the information tab to explore how to interpret these data"),
+                       
                        dataTableOutput(ns("metric_table")),
                        downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
                        #plotOutput("AS_plot"),#annual signal plot
@@ -212,19 +214,22 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          value = ns('results_tbl'), 
                         fluidRow(
                          downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
-                         h2("Metric Data Table"),
-                         h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                         h4("Metric Data Table"),
+                         h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),
                          p("PhaseLag_d is Phase Lag, days"),
-                         h3("Blue columns are associated with air and stream temperature linear regression"),
+                         p("Mean_ratio is ratio of average water temperature divided average air temperature"),
+                         h5("Blue columns are associated with air and stream temperature linear regression"),
                          p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                          p("AdjRsqr, is the r2 of the linear fit"),
-                         h3("Please review the literature citations from the information tab to explore how to interpret these data"),
-                         verbatimTextOutput(ns("datafail")),
+                         p("YInt, is the y intercept of the linear relationship"),
+                         h5("Please review the literature citations from the information tab to explore how to interpret these data"),
+                         
                          dataTableOutput(ns("metric_table")),
                          downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
                          #plotOutput("AS_plot"),#annual signal plot
                          #plotOutput("TS_plot"),
+                         textOutput(ns("datafail")),
                          leafletOutput(ns("metricmap")),
                          dataTableOutput(ns("user_yearlyTM")),
                          downloadButton(ns("download_TMyearly"), "Download DataTable by Year"),
@@ -272,7 +277,7 @@ norwestUI <- function(id, label = "norwest") {
     #add_busy_spinner(spin = "radar", position = "full-page", margins = c(10, 20)),
     ##TABS##
     # Output: Tabset w/ plot, summary, and table ----
-    tabsetPanel(id = "norW_calc", type = "tabs",
+    tabsetPanel(id = ns("norW_calc"), type = "tabs",
                 tabPanel("Input: Available Stream Sites",
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
@@ -338,32 +343,37 @@ norwestUI <- function(id, label = "norwest") {
                            h2("Sites with Available Temperature Data"),
                            textOutput("datafail"),
                            leafletOutput(ns("dataavailmap")),
-                           downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
+                           
                            dataTableOutput(ns("site_table")),
                            p()#,
                            #actionButton("explore", "Update Points")
                          ),
                 ),#end mainpanel
                 #             
-                tabPanel("Results: Metric Table and Plots",
+                tabPanel(title = "Results: Metric Tables", 
+                         value = ns('results_tbl'),
                          
-                         h2("Metric Data Table"),
-                         h3("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                        fluidRow(
+                         h4("Metric Data Table"),
+                         h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),
                          p("PhaseLag_d is Phase Lag, days"),
-                         h3("Blue columns are associated with air and stream temperature linear regression"),
+                         p("Mean_ratio is ratio of average water temperature divided average air temperature"),
+                         h5("Blue columns are associated with air and stream temperature linear regression"),
                          p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                          p("AdjRsqr, is the r2 of the linear fit"),
-                         h3("Please review the literature citations from the information tab to explore how to interpret these data"),
+                         p("YInt, is the y intercept of the linear relationship"),
+                         h5("Please review the literature citations from the information tab to explore how to interpret these data"),
                          
                          dataTableOutput(ns("metric_table")),
+                         downloadButton(ns("download_rawdata"), "Download Raw Air and Stream Data"),
                          downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
                          #plotOutput("AS_plot"),#annual signal plot
                          #plotOutput("TS_plot"),
                          leafletOutput(ns("metricmap")),
                          #p(),
                          #actionButton("recalc", "Update Points")),
-                         
+                        )
                          #tabPanel("Summary", verbatimTextOutput("summary"))
                 ),
                 tabPanel("Data Plots",

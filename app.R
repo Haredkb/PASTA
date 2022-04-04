@@ -38,7 +38,7 @@ ui <- fluidPage(
                                      <section class='banner'>
                                      <h2 class='parallax'>PASTA</h2>
                                      <p class='parallax_description'>A tool for the calculation of 
-                                     paired air/water signal metrics</p>
+                                     paired air & water temperature metrics</p>
                                      </section>
                                      ")
           ),
@@ -314,6 +314,18 @@ ui <- fluidPage(
 
                               
         tabPanel("Thermal Metric Results",
+                 h4("Metric Data Table"),
+                 h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                 p("Amp_Ratio is Amplitude Ratio, unitless"),
+                 p("PhaseLag_d is Phase Lag, days"),
+                 p("Mean_ratio is ratio of average water temperature divided average air temperature"),
+                 h5("Blue columns are associated with air and stream temperature linear regression"),
+                 p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
+                 p("AdjRsqr, is the r2 of the linear fit"),
+                 p("YInt, is the y intercept of the linear relationship"),
+                 h5("Please review the literature citations from the information tab to explore how to interpret these data"),
+                 
+                 
                                         #themal metrics dataframe for each year of analysis
                                         DT::dataTableOutput("user_dataTM"),
                                         downloadButton("download_user_dataTM", "Download Thermal Metric DataTable"),
@@ -475,7 +487,7 @@ server <- function(input, output, session) {
   #Update stream temperature (sTem) dataframe to clean consistent format
   sTem_df <- eventReactive(input$colselect, {
     df <- user_data()%>% #[,input$user_datainput_columns_selected] 
-      rename("site_id" = input$ID_colnm , "date_raw" = input$date_colnm, "T_stream"  = input$T_colnm)%>%
+      dplyr::rename("site_id" = input$ID_colnm , "date_raw" = input$date_colnm, "T_stream"  = input$T_colnm)%>%
       mutate(date = as.Date(date_raw, format = input$date_format),
              site_id = as.factor(site_id)) %>%
       dplyr::select(site_id, date, T_stream, date_raw)%>%
@@ -580,7 +592,8 @@ server <- function(input, output, session) {
     sTem_df() %>%
       group_by(site_id)%>%
       summarise(start_date = min(date),
-                end_date = max(date))%>%
+                end_date = max(date),
+                site_id = first(site_id))%>%
       inner_join(sLoc_df(), .)
   }) #end date_group reactive
   

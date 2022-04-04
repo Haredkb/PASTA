@@ -87,6 +87,7 @@ therm_analysis <- function(df_tem){#, df_loc){
                                       df_temp_l[[x]][,"tavg_wat_C"])
         }
         )
+  
         #name the lists based on site name
         names(TS_lm_fit) <- names(df_temp_l)
         
@@ -116,15 +117,17 @@ therm_analysis <- function(df_tem){#, df_loc){
           return(T_sin_fit)
           }
           )
+        
         #rename lists with the original input from df_temp_l
         names(TAS_sin_fit) <- names(df_temp_l)
         
         ##Calculate Amp Ratio and Phase Lag
         TAS_metrics <- do.call("rbind", TAS_sin_fit) %>%
-          group_by(site_id) %>% #last is water first is air 
-          summarize(AmpRatio = round(last(amplitude_C)/first(amplitude_C),2),
+          dplyr::group_by(site_id) %>% #last is water first is air 
+          dplyr::summarize(AmpRatio = round(last(amplitude_C)/first(amplitude_C),2),
                     PhaseLag_d = round(last(phase_d) - first(phase_d),2),
-                    Ratio_Mean = round(last(YInt) / first(YInt),2))
+                    Ratio_Mean = round(last(YInt) / first(YInt),2),
+                    site_id = first(site_id)) #added, as needed when there is only one site run - otherwise site_id is dropped
         
         
         ################################################################
@@ -132,13 +135,13 @@ therm_analysis <- function(df_tem){#, df_loc){
         ########## Mergeing all Metric Analyses together #################
         
         
-        Metric_Output <- left_join(TAS_metrics, TS_metrics[,c(1,2,4,5)], #TS_slope, Rsq, Yint, and Site_id
+        Metric_Output <- dplyr::left_join(TAS_metrics, TS_metrics[,c(1,2,4,5)], #TS_slope, Rsq, Yint, and Site_id
                                                by = "site_id") #%>%
         #do in a seperate analysis                   
         #left_join(., df_loc, by = "site_id")
         
         
-        output <- left_join(df_temp, TAS_metrics, by = "site_id")
+        output <- dplyr::left_join(df_temp, TAS_metrics, by = "site_id")
         
         
       End_time <- Sys.time()
@@ -208,12 +211,12 @@ getNorwestData <- function(NorweStProcessingUnit){
     data_loc$norwest_id <- paste0(data_loc$NorPU,"_",data_loc$OBSPRED_ID)
     data_loc <- data_loc %>% #transform to wgs84 and make lat and long columns
       st_transform(., CRS("+proj=longlat +datum=WGS84 +no_defs")) %>%#'+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs')
-      mutate(long = unlist(map(geometry,1)),
+      dplyr::mutate(long = unlist(map(geometry,1)),
              lat = unlist(map(geometry,2)))
     
     #Add PERMA_FID to data file
     data <- dplyr::select(data_loc, "PERMA_FID", "norwest_id")%>%
-      inner_join(data, .)
+      dplyr::inner_join(data, .)
     
     #create loc dataframe
     if (exists("df_loc") ==TRUE){
