@@ -16,6 +16,7 @@ suppressPackageStartupMessages({
   #for hiding and toggling 
   #library(shinycssloaders)
   library(shinyWidgets)
+  library(shinyalert)
   library(plotly)
   library(ggplot2)
   library(viridis)

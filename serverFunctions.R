@@ -413,6 +413,8 @@ nwisServer <- function(id) {
                       mutate_at(vars(contains('date')), ~ as.Date(., "%Y-%m-%d"))
                   }
                   
+                  shinyalert("For the next step", "Please select sites from the data table", type = "info", closeOnClickOutside = TRUE)
+                  
                   #DATA UST BE AVAILBLE FOR THE WHOLE RECORD REQUESTED - not just 2 years, range has to be adjusted if less than range is accepatble for analysis 
                   df <- df %>%
                     dplyr::filter(as.Date(begin_date) < input$date.range[1])%>%#(input$date.range[2] - years(2))) %>% #minimum 2 years

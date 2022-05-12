@@ -20,7 +20,7 @@ envCanUI <- function(id, label = "envCanada automated") {
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
                            h2("*UNDER DEVELOPMENT*", style = "color:red"),
-                           h2("STEP 1"),
+                           h4("STEP 1"),
                            h4("Choose Stations"),
                            # "state.name will be replaced with values from NWIS
                            #selectInput(ns("station"), "Stations", choices = NULL)
@@ -144,13 +144,13 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
                            
-                           h2("STEP 1"),
-                           h4("Choose A Single State or Territory"),
+                           h6("STEP 1"),
+                           p("Choose A Single State or Territory"),
                            # "state.name will be replaced with values from NWIS
                            selectInput(ns("state"), "State", state.abb, #want to add canada and mexico #https://tengl.net/blog/2020/1/7/drawing-canada-maps-in-r
                                        multiple = FALSE), #
                            
-                           h4("OR Use Map Extent Coordinates (will override state input)"),
+                           p("OR Use Map Extent Coordinates (will override state input)"),
                            checkboxInput(ns("mapextent"), "Use Map Extent instead of State?"), #input$myMap_bounds #https://stackoverflow.com/questions/44179257/getting-bounding-box-from-leaflet-in-r
                            p("**Area cannot be larger than [13.3x3.6 degrees]"),
                            
@@ -162,14 +162,14 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            # sliderInput("year.range", "Analysis Years", value = c(year(Sys.Date()- years(8)), year(Sys.Date()- years(4))),
                            #                                     min = year(as.Date("1979-10-01")), max = year(Sys.Date()- years(2)), sep = ""),
                            #consider dateRangeInput in future iterations
-                           h4("Select date range of interest (min 1 year):"),
+                           p("Select date range of interest (min 1 year):"),
                            
                            dateRangeInput(ns("date.range"), "Analysis Years",
                                           start = as.Date("2010-10-01"),
                                           end   = as.Date("2015-09-30"),
                                           min    = as.Date("1980-01-01"),
                                           max    = as.Date("2020-12-30")),
-                           
+                           useShinyalert(),
                            actionButton(
                              inputId = ns("searchsites"),
                              label = "Search for Available Sites"),
@@ -182,9 +182,9 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            
                            hr(),
                            
-                           h2("STEP 2"),
+                           h6("STEP 2"),
                            
-                           h4('Select the sites of interest from the adjacent table, then press calculate metrics, the results will be shown on the next tab'),
+                           p('Select the sites of interest from the adjacent table, then press calculate metrics, the results will be shown on the next tab'),
                            
                            checkboxInput(ns("bfi"), "Include Baseflow Index?", value = FALSE),# as.factor(parameter$parameter_nm)),
 
@@ -264,7 +264,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
 
 ##############################################
 ##############################################
-##    envCan UI             ###################
+##    NorWest UI             ###################
 ##############################################
 
 norwestUI <- function(id, label = "norwest") {
@@ -281,7 +281,7 @@ norwestUI <- function(id, label = "norwest") {
                 tabPanel("Input: Available Stream Sites",
                          sidebarPanel(
                            #add_busy_spinner(spin = "cube-grid"),
-                           h2("*UNDER DEVELOPMENT*", style = "color:red"),
+                           #h2("*UNDER DEVELOPMENT*", style = "color:red"),
                            strong("STEP 1"),
                            strong("Choose Basin/Processing Units, note selecting more than 3 can take a while"),
 

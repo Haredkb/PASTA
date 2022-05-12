@@ -590,11 +590,12 @@ server <- function(input, output, session) {
   ### add start and end date for each station id
   loc_df <- eventReactive(input$locselect, {
     sTem_df() %>%
-      group_by(site_id)%>%
-      summarise(start_date = min(date),
+      dplyr::mutate(site_id = as.factor(site_id))%>%
+      dplyr::group_by(site_id)%>%
+      dplyr::summarise(start_date = min(date),
                 end_date = max(date),
                 site_id = first(site_id))%>%
-      inner_join(sLoc_df(), .)
+      dplyr::inner_join(sLoc_df(), .)
   }) #end date_group reactive
   
   
