@@ -413,6 +413,7 @@ nwisServer <- function(id) {
                       mutate_at(vars(contains('date')), ~ as.Date(., "%Y-%m-%d"))
                   }
                   
+                  #adds diaplog box with additional information 
                   shinyalert("For the next step", "Please select sites from the data table", type = "info", closeOnClickOutside = TRUE)
                   
                   #DATA UST BE AVAILBLE FOR THE WHOLE RECORD REQUESTED - not just 2 years, range has to be adjusted if less than range is accepatble for analysis 
@@ -533,16 +534,27 @@ nwisServer <- function(id) {
                     
                     #get stream temperature data (and location data)
                     nwis_l <- readNWIS_Temp(site_table_s, #input$siteNo,#for use of dropdown 
-                                            format(input$date.range[1]), #start date
+                                           format(input$date.range[1]), #start date
                                             format(input$date.range[2]))#end date)
                     #list [1] is stream temperature data, and [2] is location information
-                  
+                    
+                    #download discharge if requesteds
+                    if(input$bfi ==TRUE){
+                      nwis_Q <- readNWIS_Q(site_table_s, #input$siteNo,#for use of dropdown 
+                                           # format(start.date), #input$date.range[1]), #start date
+                                           # format(end.date))
+                                           format(input$date.range[1]), #start date
+                                           format(input$date.range[2]))
+                      #replace dataframe 1 with QT
+                      nwis_l[[1]] <- dplyr::left_join(nwis_l[[1]], nwis_Q[[1]], by = c("site_id", "date"))
+                      }
+                    
                     if (is.list(nwis_l) == FALSE) {
                       output$datafail <- renderText({
-                        paste("Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
+                        message("Temperature Data does not exist for time period requested - often this is due to a >yearly gap in data collection")
                       }) 
                       
-                      }else{
+                    }else{
                         return(nwis_l)
                       }
                    
@@ -562,24 +574,45 @@ nwisServer <- function(id) {
                 
                 data <- reactive({
                   req(download_data())
-                  
-                  head(download_data()[2])
-                  print("batch aTem")
+
                     #get air temperature data
                     aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
                     #clean data and pull out avgdaily air temperature 
-                  print("batch aTem2")
+                  
                     aTem <- clean_daymet(aTem)%>%
                       dplyr::select(site_id, date, tavg_air_C)
                     
+                    #make dataframe from list for join with air temp
+                    df <- as.data.frame(download_data()[1])
+                    
+                  
                     #join air ad stream temp in a table to have attributed needed for therm_analysis
-                    df <- left_join(as.data.frame(download_data()[1]), aTem, by = c("site_id", "date"))%>%
+                    df <- dplyr::left_join(df, aTem, by = c("site_id", "date"))%>%
                       na.omit() %>%
                       dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)
-                
+                    
+                    if("flow" %in% colnames(df)){
+                      df <-  df %>%
+                      dplyr::relocate(flow, .after = last_col())}#move flow to the end so therm_analysis works 
+                    
+                    #add daily BFI
+                    if(input$bfi ==TRUE){
+                      bfi_df <- lapply(unique(df$site_id), function(id){
+                        bf_a <- df %>%
+                          dplyr::filter(site_id == id)
+                        
+                        output <- baseflow_calc(bf_a$date, bf_a$flow, id)
+  
+                        })%>%
+                        do.call("rbind",.)
+                      
+                      try(df <- left_join(df, bfi_df))
+                    }
+                    
                     #print(df)
                     ## for debugging
                     saveRDS(df, "df_nwis_output.RDS")
+                    
                     return(df)
                   })
                   
@@ -589,22 +622,51 @@ nwisServer <- function(id) {
                     return(df)
                   })
                 
-                # Create output table 
-                output$metric_table <-DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
-                  datatable(full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id"), by = c("site_no" = "site_id"))) %>% 
-                    formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
-                                backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
-                    formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
-                                backgroundColor = 'lightblue') %>%
-                    formatStyle(c("max_conseq_missing_days"),
-                                backgroundColor = styleInterval(49, c('white', 'orange'))) 
+                
+                bfi_df <- reactive({
+                  if(input$bfi ==TRUE){
+                    out <- data() %>%
+                    group_by(site_id)%>%
+                    dplyr::summarise(
+                      BFI = round(mean(bfi_daily, na.rm = TRUE),2)
+                    )}else(#otherwise just a list of site_id for joining 
+                    out <- data.frame(site_id = unique(data()$site_id))
+                          )
                   
+                  return(out)
+                }
+                )
+                
+                metric_table <- reactive({
+                  full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
+                            left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id"), 
+                            by = c("site_no" = "site_id"))%>%
+                    left_join(., bfi_df(), by = c("site_no" = "site_id"))
                 })
+                # Create output table 
+                output$metric_table <- DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
+                      datatable(metric_table()) %>% 
+                        formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
+                                    backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
+                        formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
+                                    backgroundColor = 'lightblue') %>%
+                        formatStyle(c("max_conseq_missing_days"),
+                                    backgroundColor = styleInterval(49, c('white', 'orange')))})
+                  
                 
                 ##Download Metric Output Table 
                 output$downloadData <- downloadHandler(
                   filename = function() {
                     paste("ThermalMetrics_NWIS.csv")
+                  },
+                  content = function(file) {
+                    write.csv(data(), file, row.names = FALSE)
+                  }
+                )
+                
+                output$download_rawdata <- downloadHandler(
+                  filename = function() {
+                    paste("RawData_NWIS.csv")
                   },
                   content = function(file) {
                     write.csv(data(), file, row.names = FALSE)

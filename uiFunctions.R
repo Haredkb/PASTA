@@ -317,7 +317,7 @@ norwestUI <- function(id, label = "norwest") {
                            actionButton(
                              inputId = ns("getData"),
                              label = "Get Data"),
-                           p("Can take a few minutes, especially for multiple sites"),
+                           p("Can take a few minutes, especially for multiple processing units"),
                            hr(),
                            
                            ###set parameter choices

@@ -9,44 +9,51 @@ library(DVstats) #for baseflow
 
 ### bfi
 
-baseflow_calc <- function(date, flow, site_no){
+baseflow_calc <- function(date, flow, id){
   #create dataframe
-  df <- as.data.frame(flow) %>%
-    cbind(., date)  #date can only be added as.date once the datafram has already been created
-
+  df_b <- as.data.frame(flow) %>%
+    cbind(., date = date)%>%  #date can only be added as.date once the datafram has already been created
+    dplyr::rename(flow = 1, date = 2)
+  
+  dates_seq <- data.frame(date = seq.Date(min(df_b$date), max(df_b$date), by = "day"))
+  
+  df_b <- left_join(dates_seq, df_b)
+  
   # # Calculate if any missing dates, will not run if so
-      df$flowFill <- fillMissing(df$flow, max.fill = 14) 
+  df_b$flowFill <-smwrBase::fillMissing(df_b$flow, max.fill = 14)
       #Trim any NAs from the end or beginning - doing this after fill will remove any trailing NAs for data that begins or ends at off times or throw an error for sets missing more than 2 weeks of data (combined with "fillMissing")
-      # %>% drop_na(df, any_of("flowFill"))
       
       # ggplot(df) +
       #geom_point(aes(x = date, y = flow))
         
       ### RUN BASEFLOW ANALYSIS 
-      if(any(is.na(df$flowFill))== TRUE){ #IF datagraps are too large
+      if(any(is.na(df_b$flowFill))== TRUE){ #IF datagraps are too large
         message(paste(x, " has data Gaps larger than 14 days, baseflow analysis not conducted"))
-        return("no BF")
+        return(NULL)
         #df_bfi$BaseQ <- rep(NA, length = length(flow))
         
       } else { 
       
           #Perform BFI calculation with bfi
         try(
-          df_bfi <- with(df, #dont need the with statment when using this fuction with apply - investigate....
-                           bfi(df$flowFill, df$date, 
-                               by="continuous", 
-                               STAID= "Unknown"))
-                            #site_no))
-          )
+          df_bfi <- with(df_b, bfi(flowFill, date, by="continuous",
+                                                     STAID=as.character(id)))
+            #with(df, #dont need the with statment when using this fuction with apply - investigate....
+        )
         
+        try(BFI_daily <- data.frame(date = df_bfi$Dates, site_id = attr(df_bfi, "STAID"), bfi_daily = df_bfi$BaseQ/df_bfi$Flow))
+                            #site_no))
+        return(BFI_daily)
+        
+        }
+          
+         # a vector the same length as entered
         #df <- df_bfi
       }
           #try( df_bfi <- na.omit (df_bfi))#remove rows with NA for stat calculations
           #try( df_bfi$site_no <- id)#add site id column to bfi dataframe
           #try(BFI_Score <- round(mean(df_bfi$BaseQ)/mean(df_bfi$Flow), digits = 2))
           
-      return(df_bfi$BaseQ) # a vector the same length as entered
-} 
 
 ###hysep
 

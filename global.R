@@ -23,6 +23,7 @@ suppressPackageStartupMessages({
   #web scraping
   library(xml2)
   library(rvest)
+  
   #library(dygraphs)
   require("httr")
   require("stringr")
@@ -34,6 +35,7 @@ suppressPackageStartupMessages({
   source("R/rundata_v1.R")
   source("R/env_Canada_data.R")
   source("R/plotFunctions.R")
+  source("R/baseflow_regression.R")
   #for app functions
   source("serverFunctions.R")
   source("uiFunctions.R")
