@@ -54,6 +54,8 @@ filelist_retrieval <- function(resource_id, username, password){
   #Create list of available Files
   files_avail <- as.data.frame(filelist$results)
 }
+
+
 ############'
 ### CORE PREP ANALYSIS for Thermal Metrics(TM)
 ############
@@ -139,6 +141,8 @@ therm_analysis <- function(df_tem){#, df_loc){
                                                by = "site_id") #%>%
         #do in a seperate analysis                   
         #left_join(., df_loc, by = "site_id")
+        
+        attr(Metric_Output, 'sine_fit') <- do.call("rbind", TAS_sin_fit)
         
         
         output <- dplyr::left_join(df_temp, TAS_metrics, by = "site_id")

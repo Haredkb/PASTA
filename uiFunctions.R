@@ -168,7 +168,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                                           start = as.Date("2010-10-01"),
                                           end   = as.Date("2015-09-30"),
                                           min    = as.Date("1980-01-01"),
-                                          max    = as.Date("2020-12-30")),
+                                          max    = as.Date("2021-12-30")),
                            useShinyalert(),
                            actionButton(
                              inputId = ns("searchsites"),
@@ -186,7 +186,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            
                            p('Select the sites of interest from the adjacent table, then press calculate metrics, the results will be shown on the next tab'),
                            
-                           checkboxInput(ns("bfi"), "Include Baseflow Index?", value = FALSE),# as.factor(parameter$parameter_nm)),
+                           checkboxInput(ns("bfi"), "Download Flow Data, if available?", value = FALSE),# as.factor(parameter$parameter_nm)),
 
                            ##add action button so thermal parameter run only happens after user is ready
                            actionButton(inputId = ns("gobutton"),label = "Calculate Thermal Metrics",
@@ -213,26 +213,40 @@ nwisUI <- function(id, label = "Automated NWIS") {
                 tabPanel(title = "Results: Metric Tables", 
                          value = ns('results_tbl'), 
                         fluidRow(
+                          
+                         h5("Input Air and Stream Temperature Data, with flow and daily BFI if selected:"),
                          downloadButton(ns("download_rawdata"), "Download Air and Stream Data"),
-                         h4("Metric Data Table"),
-                         h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
+                         p("Annual Temperature Signal Fit Parameters:"),
+                         downloadButton(ns("download_fitdata"), "Download Annual Signal Fit Data"),
+                         
+                         br(),
+                         
+                         column(6,
+                         h6("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),
                          p("PhaseLag_d is Phase Lag, days"),
-                         p("Mean_ratio is ratio of average water temperature divided average air temperature"),
-                         h5("Blue columns are associated with air and stream temperature linear regression"),
+                         p("Mean_ratio is ratio of average water temperature divided average air temperature")),
+                         
+                         column(6,
+                         h6("Blue columns are associated with air and stream temperature linear regression"),
                          p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                          p("AdjRsqr, is the r2 of the linear fit"),
-                         p("YInt, is the y intercept of the linear relationship"),
+                         p("YInt, is the y intercept of the linear relationship")
+                         ),
                          h5("Please review the literature citations from the information tab to explore how to interpret these data"),
                          
-                         dataTableOutput(ns("metric_table")),
+                         h4("Summary Metric Data Table"),
                          downloadButton(ns("downloadData"), "Download Paired Stream-Air Metric DataTable"),
-                         #plotOutput("AS_plot"),#annual signal plot
-                         #plotOutput("TS_plot"),
+                         dataTableOutput(ns("metric_table")),
+                         
                          textOutput(ns("datafail")),
-                         leafletOutput(ns("metricmap")),
-                         dataTableOutput(ns("user_yearlyTM")),
+                         
+                         h4("Yearly Summary Metric Data Table"),
                          downloadButton(ns("download_TMyearly"), "Download DataTable by Year"),
+                         dataTableOutput(ns("user_yearlyTM")),
+                         
+                         leafletOutput(ns("metricmap"))
+                         
                 #p(),
                 #actionButton("recalc", "Update Points")),
                 

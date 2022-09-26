@@ -33,6 +33,7 @@ suppressPackageStartupMessages({
   source("R/nwis_data_v2.R")
   source("R/daymet_data_v2.R")
   source("R/rundata_v1.R")
+  source("R/norWeST_data.R")
   source("R/env_Canada_data.R")
   source("R/plotFunctions.R")
   source("R/baseflow_regression.R")

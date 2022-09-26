@@ -14,8 +14,9 @@ library(plyr) #rbind.fill
 getNorwestData <- function(NorweStProcessingUnit){
   for(i in NorweStProcessingUnit){
   #find link to access resource list
-    link <- "https://www.fs.fed.us/rm/boise/AWAE/projects/NorWeST/StreamTemperatureDataSummaries.shtml"
-    df_link <- "https://www.fs.fed.us/rm/boise/AWAE/projects/NorWeST/"
+
+    link <- "https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/StreamTemperatureDataSummaries.shtml"
+    df_link <- "https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/"
 
     html <- read_html(link)
     #find links with "resource"
@@ -30,9 +31,11 @@ getNorwestData <- function(NorweStProcessingUnit){
       dplyr::filter(grepl("ObservedTempPoints",value))
     
     #link_end <- (xml_attrs(fils))
-
-    link_df = sprintf("https://www.fs.fed.us/rm/boise/AWAE/projects/NorWeST/%s", fils_df[1,])
-    link_shp = sprintf("https://www.fs.fed.us/rm/boise/AWAE/projects/NorWeST/%s", fils_shp[1,])
+    #example 2022-09-12
+    #https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/downloads/ObservedStreamTemperatureMaps/170602_Salmon/NorWeST_ObservedStreamTempDailySummaries_SalmonRiverBasin_AllDays.zip
+    
+    link_df = sprintf("https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/%s", fils_df[1,])
+    link_shp = sprintf("https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/%s", fils_shp[1,])
     
     #download files from web
     temp <- tempfile()

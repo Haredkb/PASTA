@@ -269,11 +269,44 @@ ui <- fluidPage(
                             #--------------------------------------------
                             box(title = "Step 3: Air Temperature Data", width = 4, status = "primary",
                             
-                                      
+                                  box(
                                       ##Air Temperature Inputs
-                                      h4("3: Add Air Temperature Data (user air option coming soon)"),
-                                      p("Daymet data available from Jan 1980- Dec 2020"),
-                                      actionButton("daymet_select", "Use Daymet Air Temperature Data"),
+                                      h5("Add Air Temperature Data"),
+                                      radioButtons("air_choice", "Air Temperature Source", choices = c("Daymet download" = "daymet",
+                                                                                                       "user upload" = "user_upload")),                                                                                   
+                                      p("Daymet data available from Jan 1980- Dec 2021")
+                                  ),
+                                
+                                box(title = "User Air", id = "upload_userairtab",
+                                    
+                                    splitLayout(cellWidths = c("25%", "25%", "50%"),
+                                                numericInput("colnm_row_air", "Header Row", value = 1),
+                                                selectInput(inputId = 'upload_deml_air', label = 'delimiter', 
+                                                            choices = c(Comma=',' ,Semicolon=';'
+                                                                        ,Tab='\t', Space= " "), selected = ','),
+                                                fileInput("upload_air", "2a. Enter Stream Location Data (csv)")),
+                                    
+                                    
+                                    splitLayout(selectInput("ID_colnm_air", "Site ID Column", choices = NULL),""),
+                                    
+                                    splitLayout(selectInput("date_colnm_air", "Date Column", choices = NULL),
+                                                textInput("date_format_air", "Input date format:", placeholder = "%m/%d/%Y", value = "%m/%d/%Y")
+                                                
+                                    ),
+                                    
+                                    a("Date Format Tips", href="https://www.statmethods.net/input/dates.html"),
+                                    
+                                    splitLayout(selectInput("T_colnm_air", "Stream Temperature", choices = NULL),
+                                                radioButtons("temp_unit_air", "Temperature Units", choices = c("celsius" = "cel",
+                                                                                                           "fahrenheit" = "fhr",
+                                                                                                           "kelvin" = "kel"))
+                                    ),
+                                    
+                                    actionButton("colselect_air", "Tidy User Air Data"),
+                                    hr()
+                                ),#close box for step 1
+                              
+                                      actionButton("add_air", "Join Air Temperature"),
                                       hr(),
                                       p("Wait for table to appear before proceeding to step 4: running analysis.", style = "color:red"),
                                       hr(),
@@ -605,16 +638,88 @@ server <- function(input, output, session) {
     caption = 'Joined Input Data Table'
   )
   
+  #####################
+  ####Air Data 
+  user_air <-  eventReactive(input$upload_air,
+    {
+        # input$file1 will be NULL initially. After the user selects
+        # and uploads a file, it will be a data frame with 'name',
+        # 'size', 'type', and 'datapath' columns. The 'datapath'
+        # column will contain the local filenames where the data can
+        # be found.
+        
+        inFile <- input$upload_air
+        
+        if (is.null(inFile))
+          return(NULL)
+        
+        file_df <-read.csv(inFile$datapath, skip = input$colnm_row_air -1, sep = input$upload_deml_air)
+      }
+    )
   
-  ####Daymet Air collection 
-  aTem_df <- eventReactive(input$daymet_select, { 
+  ##################################################  
+  #update column name selection based on user column select
+  colnm_input_air <- c("T_colnm_air", "ID_colnm_air", "date_colnm_air")
+  
+  #update all the colnames choices for user to select correct match
+  observe(
+    lapply(colnm_input_air, function(x){
+      updateSelectInput(session, x,
+                        #label = paste("Select input label", length(x)),
+                        choices = names(user_air())#,#[,input$user_datainput_columns_selected]),#therefore columns dont need to be selected
+                        #selected = tail(x, 1)
+      )
+    }
+    )#end lapply
+    #, suspended = TRUE #start in suspensed state
+  )#end observe 
+  
+  #Update stream temperature (sTem) dataframe to clean consistent format
+  aTem_df <- eventReactive(input$colselect_air, {
+    df <- user_data()%>% #[,input$user_datainput_columns_selected] 
+      dplyr::rename("site_id" = input$ID_colnm_air , "date_raw" = input$date_colnm_air, "T_air"  = input$T_colnm_air)%>%
+      mutate(date = as.Date(date_raw, format = input$date_format_air),
+             site_id = as.factor(site_id)) %>%
+      dplyr::select(site_id, date, T_air, date_raw)%>%
+      group_by(site_id) %>%
+      timetk::summarise_by_time( #for daily time steps from hourly.
+        .date_var = date,
+        .by       = "day", # Setup for monthly aggregation
+        # Summarization
+        tavg_wat_C = mean(T_stream)
+      )
+    #### Making sure input in in Celsius or converts it
+    #using radio buttons
+    aTem_units <- switch(input$temp_unit_air,
+                         cel = function(x){ #this seems silly, but want it as a option
+                           x * 1 
+                         },
+                         fhr = function(x){
+                           ((x-32) * (5/9))
+                         },
+                         kel = function(x){
+                           x - 273.15 
+                         })
+    
+    #convert the input temperature values to celisus 
+    df$tavg_air_C <- aTem_units(df$tavg_air_C)
+    print(df)
+    df
+  })
+  
+  aTem_df <- eventReactive(input$add_air, { 
+    if(input$air_choice == "user_upload"){
+      aTem_df()
+      
+    }else{
+      
     #run batch collection from daymet
     aTem <- batch_daymet(loc_df())
     #clean data and pull out avgdaily air temperature 
     aTem <- clean_daymet(aTem)%>%
       dplyr::select(site_id, date, tavg_air_C)
     
-    aTem
+    aTem}
   })
   
   ####Join Air and Stream ### 

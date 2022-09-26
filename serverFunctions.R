@@ -575,9 +575,13 @@ nwisServer <- function(id) {
                 data <- reactive({
                   req(download_data())
 
+  
                     #get air temperature data
                     aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
                     #clean data and pull out avgdaily air temperature 
+                    
+                    
+                    
                   
                     aTem <- clean_daymet(aTem)%>%
                       dplyr::select(site_id, date, tavg_air_C)
@@ -622,26 +626,27 @@ nwisServer <- function(id) {
                     return(df)
                   })
                 
-                
-                bfi_df <- reactive({
-                  if(input$bfi ==TRUE){
-                    out <- data() %>%
-                    group_by(site_id)%>%
-                    dplyr::summarise(
-                      BFI = round(mean(bfi_daily, na.rm = TRUE),2)
-                    )}else(#otherwise just a list of site_id for joining 
-                    out <- data.frame(site_id = unique(data()$site_id))
-                          )
-                  
-                  return(out)
-                }
-                )
-                
+                # # not consistently working
+                # bfi_df <- reactive({
+                #   if(input$bfi ==TRUE){
+                #     out <- data() %>%
+                #     group_by(site_id)%>%
+                #     dplyr::summarise(
+                #       BFI = round(mean(bfi_daily, na.rm = TRUE),2)
+                #     )}else(#otherwise just a list of site_id for joining
+                #     out <- data.frame(site_id = unique(data()$site_id))
+                #           )
+                #   
+                #   return(out)
+                # }
+                # )
+                # 
                 metric_table <- reactive({
                   full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
                             left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id"), 
-                            by = c("site_no" = "site_id"))%>%
-                    left_join(., bfi_df(), by = c("site_no" = "site_id"))
+                            by = c("site_no" = "site_id"))
+                  # %>%
+                  #   left_join(., bfi_df(), by = c("site_no" = "site_id"))
                 })
                 # Create output table 
                 output$metric_table <- DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
@@ -672,6 +677,18 @@ nwisServer <- function(id) {
                     write.csv(data(), file, row.names = FALSE)
                   }
                 )
+                
+                output$download_fitdata <- downloadHandler(
+                  filename = function() {
+                    paste("AnnualSignalFit_NWIS.csv")
+                  },
+                  content = function(file) {
+                    write.csv(attr(therm_analysis(data()), 'sine_fit'), file, row.names = FALSE)
+                  }
+                )
+                
+                
+                
                 
                 ### conduct yearly thermal analysis
                 TM_data_byyear <- eventReactive(input$gobutton,{
