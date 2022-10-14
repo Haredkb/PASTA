@@ -23,7 +23,7 @@ suppressPackageStartupMessages({
   #web scraping
   library(xml2)
   library(rvest)
-  
+  library(zip)
   #library(dygraphs)
   require("httr")
   require("stringr")

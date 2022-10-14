@@ -78,8 +78,8 @@ therm_analysis <- function(df_tem){#, df_loc){
         
         
   #create list of each unique station id dataframe 
-  df_temp_l <- split(df_temp, df_temp$site_id)
-        
+  df_temp_l <- split(df_temp, df_temp$site_id)%>%
+    discard(., function(z) nrow(z) == 0) #remove any empty site_ids   
         
         ########----------------Thermal Senstivity Analysis ----------------#########
         #### Conduct Temperature Sensitivity - Kelleher 2012

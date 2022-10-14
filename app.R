@@ -53,16 +53,23 @@ ui <- fluidPage(
                                to support interferences about hydrologic processes. Two analyses are performed: 
                                (1) Annual Signal Analysis, where the daily stream and air mean temperatureare fit to a sinusoid, and the 
                                compartive metrics are extracted - Amplitude Ratio, Phase lag (days), and Mean Ratio (e.g. Johnson et al. 2020, Hare et al. 2021)
-                               (2) Daily (or weekly) mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016)
-                               <br><br>CURRENTLY UNDER DEVELOPMENT AND FOR TEST APPLICATION ONLY </h4>")
+                               (2) Daily (or weekly) mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016)")
             ),
             column(3)
           ),
           fluidRow(
-            
+            shiny::HTML("<br><br><h4>Example Stream Temperature, Site Location, and Air Temperature Data. Data from Boose(2022)A and Boose(2022)B</h1>"),
+            # downloadButton("downloadEgTemp_s", "Download Example Stream Temperature Input Files"),
+            # downloadButton("downloadEgLoc", "Download Example Location Input Files"),
+            # downloadButton("downloadEgTemp_a", "Download Example Air Temperature Input Files"),
+            downloadButton("downloadEgData", "Download Example Stream Temperature Input Files"),
             style = "height:50px;"),
           
           # PAGE BREAK
+          tags$br(),
+          tags$br(),
+          tags$br(),
+          tags$br(),
           tags$hr(),
           
           # WHERE
@@ -83,6 +90,11 @@ ui <- fluidPage(
                                      <br>
                                      <br>
                                      Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840
+                                     <br>
+                                     <br>
+                                     Example Data Files from: 
+                                     Boose E. 2022. Prospect Hill Hydrological Stations at Harvard Forest since 2005. Harvard Forest Data Archive: HF070 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/facbd72c5bee71da4fa8a5fe89574992.
+                                     Boose E. 2022. Fisher Meteorological Station at Harvard Forest since 2001. Harvard Forest Data Archive: HF001 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/a0083f14a6475b78b0bbb2abf26eb295.
                                .</h4>")
             ),
             column(1)
@@ -131,10 +143,10 @@ ui <- fluidPage(
              
         
         ##------envCan----------#####
-            tabPanel("Environment Canada Data",
-                  envCanUI("envCanModule")
-                ),
-        
+            # tabPanel("Environment Canada Data",
+            #       envCanUI("envCanModule")
+            #     ),
+            # 
         ##------NorWeST---------#####
         tabPanel("NorWeST Stream Data",
                  norwestUI("norwestModule")
@@ -172,7 +184,7 @@ ui <- fluidPage(
                                       Required datasets are stream temperature dataaset (multiple sites allowed),
                                       and site location dataset with matching site ids, csvs are required.  
                                       Stream datasets require columns: site ID, stream temperature, date (or date time, but only put date attributed in date input format).
-                                      Uploads can take some time please be patient."),
+                                      Uploads can take some time please be patient.Example Stream Temperature, Site Location, and Air Temperature Data are available on Information Tab"),
                               hr(),
                               
                               #div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
@@ -181,18 +193,19 @@ ui <- fluidPage(
                               # Box 1 for Stream Temperature
                               #--------------------------------------------
                               column(width = 4,
-                              tabBox(title = "Step 1: Upload Stream Temperature Data",
+                              tabBox(title = "Step 1a: Upload Stream Temperature Data",
+                                     width = 12,
                                      id = "upload_tab",
                                      #status = "primary",
                                   ##Content of Box 1
                                tabPanel("Table",
-                                         splitLayout(cellWidths = c("50%", "50%"),
+                                         splitLayout(cellWidths = c("25%", "25%", "50%"),
                                             numericInput("colnm_row", "Header Row", value = 1),
                                             selectInput(inputId = 'upload_deml', label = 'delimiter', 
                                                          choices = c(Comma=',' ,Semicolon=';'
-                                                                     ,Tab='\t', Space= " "), selected = ',')),
+                                                                     ,Tab='\t', Space= " "), selected = ','),
                                         
-                                        fileInput("upload_water", "Upload raw stream temperature")
+                                        fileInput("upload_water", "Upload raw stream temperature")),
                                ),
                                             #textInput("upload_deml", "delimiter", placeholder = ",", value = ","),
                                             
@@ -212,8 +225,8 @@ ui <- fluidPage(
 
                                           ),
                               ),
-                              box(title ="1b: Choose the columns names that correspond to the correct variables:", status = "primary",
-
+                              box(title ="1b: Choose the columns names that correspond to the correct variables:", status = "primary",width = 12, 
+                                            p("Uploaded Table shows up at bottom of page if you need reference"),
                                             splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
 
                                             splitLayout(selectInput("date_colnm", "Date Column", choices = NULL),
@@ -231,83 +244,23 @@ ui <- fluidPage(
 
                                          actionButton("colselect", "Tidy Stream Temperature Table"),
                                hr()
+                               
+                               
+
                               ),#close box for step 1
                               ),#close column 1
-
+                              
+                              column(width = 4,
+                                    h5("Choose Air Input Data: Daymet or User-defined"),
+                                     radioButtons("air_choice", "Air Temperature Source", choices = c("Daymet download" = "daymet",
+                                                                                                      "User upload" = "user_upload")), 
+                                      uiOutput("AirData") #updates based on user choice
+                                     
+                                     ),
                             #--------------------------------------------------#
                             # Box 2 for Stream Location 
-                            #--------------------------------------------
-                            box(title = "Step 2: Site Location Data ", id = "upload_loctab", width = 4,
-                                 ##Location Dataset
-                                           splitLayout(cellWidths = c("25%", "25%", "50%"),
-                                                       numericInput("colnm_row_loc", "Header Row", value = 1),
-                                                       selectInput(inputId = 'upload_deml_loc', label = 'delimiter', 
-                                                                   choices = c(Comma=',' ,Semicolon=';'
-                                                                               ,Tab='\t', Space= " "), selected = ','),
-                                                       fileInput("upload_loc", "2a. Enter Stream Location Data (csv)")),
-                                         
-                                        p("Can be the same datatable as Stream Temperature data input, location datum must be WGS84 lat/long"),
-                                        hr(),
-
-                                        strong("2b: Choose the columns names that correspond to the correct variables:"),
-                                        splitLayout(
-                                           selectInput("IDloc_colnm", "Site ID", choices = NULL), #needs to be distinct from ID id above
-                                           selectInput("lat_colnm", "Latitude column", choices = NULL),
-                                           selectInput("long_colnm", "Longitude column", choices = NULL)
-                                           
-                                         ),
-                                
-                                        actionButton("locselect", "Update Location DataTable"),
-                                        p("Sites shown in box are data that has both stream temperature data and location data"),
-                                        DT::dataTableOutput("user_dataavail"),
-                            
-                                hr()
-                            ),
-                            
-                            #--------------------------------------------------#
-                            # Box 3 for Air and Final Run
-                            #--------------------------------------------
-                            box(title = "Step 3: Air Temperature Data", width = 4, status = "primary",
-                            
-                                  box(
-                                      ##Air Temperature Inputs
-                                      h5("Add Air Temperature Data"),
-                                      radioButtons("air_choice", "Air Temperature Source", choices = c("Daymet download" = "daymet",
-                                                                                                       "user upload" = "user_upload")),                                                                                   
-                                      p("Daymet data available from Jan 1980- Dec 2021")
-                                  ),
-                                
-                                box(title = "User Air", id = "upload_userairtab",
-                                    
-                                    splitLayout(cellWidths = c("25%", "25%", "50%"),
-                                                numericInput("colnm_row_air", "Header Row", value = 1),
-                                                selectInput(inputId = 'upload_deml_air', label = 'delimiter', 
-                                                            choices = c(Comma=',' ,Semicolon=';'
-                                                                        ,Tab='\t', Space= " "), selected = ','),
-                                                fileInput("upload_air", "2a. Enter Stream Location Data (csv)")),
-                                    
-                                    
-                                    splitLayout(selectInput("ID_colnm_air", "Site ID Column", choices = NULL),""),
-                                    
-                                    splitLayout(selectInput("date_colnm_air", "Date Column", choices = NULL),
-                                                textInput("date_format_air", "Input date format:", placeholder = "%m/%d/%Y", value = "%m/%d/%Y")
-                                                
-                                    ),
-                                    
-                                    a("Date Format Tips", href="https://www.statmethods.net/input/dates.html"),
-                                    
-                                    splitLayout(selectInput("T_colnm_air", "Stream Temperature", choices = NULL),
-                                                radioButtons("temp_unit_air", "Temperature Units", choices = c("celsius" = "cel",
-                                                                                                           "fahrenheit" = "fhr",
-                                                                                                           "kelvin" = "kel"))
-                                    ),
-                                    
-                                    actionButton("colselect_air", "Tidy User Air Data"),
-                                    hr()
-                                ),#close box for step 1
-                              
-                                      actionButton("add_air", "Join Air Temperature"),
-                                      hr(),
+                            #--------------------------------------------#
+                              column(width = 4,
                                       p("Wait for table to appear before proceeding to step 4: running analysis.", style = "color:red"),
                                       hr(),
                                       DT::dataTableOutput("user_dataair"),
@@ -322,7 +275,7 @@ ui <- fluidPage(
                                       actionButton("calc_metric_u", "Calculate Thermal Metrics",
                                                    style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
                                       hr()
-                            )
+                              )
                             ),
                                
                             #----------------------------------#
@@ -406,6 +359,20 @@ server <- function(input, output, session) {
   envCanServer("envCanModule")
   nwisServer("nwisModule")
   norwestServer("norwestModule")
+  
+  
+  output$downloadEgData <- downloadHandler(
+    filename <- function() {
+      paste("www/ExamplePASTAInputFiles", "zip", sep=".")
+    },
+    
+    content <- function(file) {
+      file.copy("www/ExamplePASTAInputFiles.zip", file)
+    },
+    contentType = "application/zip"
+  )
+  
+
   
   # ### User Defined with the app file as lots of update input functions
   # #userDefinedServer("user defined inputs")
@@ -666,7 +633,7 @@ server <- function(input, output, session) {
     lapply(colnm_input_air, function(x){
       updateSelectInput(session, x,
                         #label = paste("Select input label", length(x)),
-                        choices = names(user_air())#,#[,input$user_datainput_columns_selected]),#therefore columns dont need to be selected
+                        choices = c(names(user_air()), "Use for ALL")#,#[,input$user_datainput_columns_selected]),#therefore columns dont need to be selected
                         #selected = tail(x, 1)
       )
     }
@@ -675,43 +642,67 @@ server <- function(input, output, session) {
   )#end observe 
   
   #Update stream temperature (sTem) dataframe to clean consistent format
-  aTem_df <- eventReactive(input$colselect_air, {
-    df <- user_data()%>% #[,input$user_datainput_columns_selected] 
-      dplyr::rename("site_id" = input$ID_colnm_air , "date_raw" = input$date_colnm_air, "T_air"  = input$T_colnm_air)%>%
-      mutate(date = as.Date(date_raw, format = input$date_format_air),
-             site_id = as.factor(site_id)) %>%
-      dplyr::select(site_id, date, T_air, date_raw)%>%
-      group_by(site_id) %>%
-      timetk::summarise_by_time( #for daily time steps from hourly.
-        .date_var = date,
-        .by       = "day", # Setup for monthly aggregation
-        # Summarization
-        tavg_wat_C = mean(T_stream)
-      )
-    #### Making sure input in in Celsius or converts it
-    #using radio buttons
-    aTem_units <- switch(input$temp_unit_air,
-                         cel = function(x){ #this seems silly, but want it as a option
-                           x * 1 
-                         },
-                         fhr = function(x){
-                           ((x-32) * (5/9))
-                         },
-                         kel = function(x){
-                           x - 273.15 
-                         })
-    
-    #convert the input temperature values to celisus 
-    df$tavg_air_C <- aTem_units(df$tavg_air_C)
-    print(df)
-    df
-  })
+
   
   aTem_df <- eventReactive(input$add_air, { 
     if(input$air_choice == "user_upload"){
-      aTem_df()
+      #If user wants the same air data for all stream
+      if(input$ID_colnm_air == "Use for ALL"){
+        
+        #duplciate all stream id over same air temp 
+       air_l <- lapply(unique(sTem_df()$site_id), function(id){
+                              user_air()%>%
+                                mutate(site_id = id)
+                              
+                    })
+       df <- do.call("rbind", air_l)%>% 
+         dplyr::rename("date_raw" = input$date_colnm_air, "T_air"  = input$T_colnm_air)%>%
+         mutate(date = as.Date(date_raw, format = input$date_format_air),
+                site_id = as.factor(site_id)) %>%
+         dplyr::select(site_id, date, T_air, date_raw)%>%
+         group_by(site_id) %>%
+         timetk::summarise_by_time( #for daily time steps from hourly.
+           .date_var = date,
+           .by       = "day", # Setup for monthly aggregation
+           # Summarization
+           tavg_air_C = mean(T_air)
+         )
+          
+        
+      }else{
+      df <- user_air()%>% 
+          dplyr::rename("site_id" = input$ID_colnm_air , "date_raw" = input$date_colnm_air, "T_air"  = input$T_colnm_air)%>%
+          mutate(date = as.Date(date_raw, format = input$date_format_air),
+                 site_id = as.factor(site_id)) %>%
+          dplyr::select(site_id, date, T_air, date_raw)%>%
+          group_by(site_id) %>%
+          timetk::summarise_by_time( #for daily time steps from hourly.
+            .date_var = date,
+            .by       = "day", # Setup for monthly aggregation
+            # Summarization
+            tavg_air_C = mean(T_air)
+          )
+      }
       
-    }else{
+        #### Making sure input in in Celsius or converts it
+        #using radio buttons
+        aTem_units <- switch(input$temp_unit_air,
+                             cel = function(x){ #this seems silly, but want it as a option
+                               x * 1 
+                             },
+                             fhr = function(x){
+                               ((x-32) * (5/9))
+                             },
+                             kel = function(x){
+                               x - 273.15 
+                             })
+        
+        #convert the input temperature values to celisus 
+        df$tavg_air_C <- aTem_units(df$tavg_air_C)
+        df
+      
+      
+    }else{ # == daymet
       
     #run batch collection from daymet
     aTem <- batch_daymet(loc_df())
@@ -727,14 +718,19 @@ server <- function(input, output, session) {
   
   #
   Tem_df <- reactive({
-    left_join(sTem_df(), aTem_df(), by = c("site_id", "date"))%>%
+    Tem_df <- left_join(sTem_df(), aTem_df(), by = c("site_id", "date"))%>%
     na.omit()
+    
+    saveRDS(Tem_df, "Tem_df_20220927.RDS")
+    
+    Tem_df
+    
   })
   
 #output table
   output$user_dataair <-DT::renderDataTable( #https://rstudio.github.io/DT/server.html for largr data
     Tem_df(), server = TRUE, selection = list(target = 'column'),
-    caption = 'Daymet Raw Data Table'
+    caption = 'Raw Data Table'
   )
   
   
@@ -895,6 +891,69 @@ p_df <- reactive({
     
   })
 
+  #######################
+  ### Air Active UI
+  #######################
+  output$AirData <- renderUI({
+    if(input$air_choice == "daymet"){
+      box(width = 12,
+            h5("Location Data for Daymet"),
+                ##Location Dataset
+                splitLayout(cellWidths = c("25%", "25%", "50%"),
+                            numericInput("colnm_row_loc", "Header Row", value = 1),
+                            selectInput(inputId = 'upload_deml_loc', label = 'delimiter', 
+                                        choices = c(Comma=',' ,Semicolon=';'
+                                                    ,Tab='\t', Space= " "), selected = ','),
+                            fileInput("upload_loc", "2a. Enter Stream Location Data (csv)")),
+                
+                p("Can be the same datatable as Stream Temperature data input, location datum must be WGS84 lat/long"),
+                hr(),
+                
+                strong("2b: Choose the columns names that correspond to the correct variables:"),
+                splitLayout(
+                  selectInput("IDloc_colnm", "Site ID", choices = NULL), #needs to be distinct from ID id above
+                  selectInput("lat_colnm", "Latitude column", choices = NULL),
+                  selectInput("long_colnm", "Longitude column", choices = NULL)
+                  
+                ),
+                
+                actionButton("locselect", "Update Location DataTable"),
+                p("Sites shown in box are data that has both stream temperature data and location data"),
+                DT::dataTableOutput("user_dataavail"),
+                
+                hr(),
+                actionButton("add_air", "Join Air Temperature")
+            )
+      }else{
+    box(width = 12,
+              h5("Step 2: User Air Temperature Data"),
+                      
+                      splitLayout(cellWidths = c("25%", "25%", "50%"),
+                                  numericInput("colnm_row_air", "Header Row", value = 1),
+                                  selectInput(inputId = 'upload_deml_air', label = 'delimiter', 
+                                              choices = c(Comma=',' ,Semicolon=';'
+                                                          ,Tab='\t', Space= " "), selected = ','),
+                                  fileInput("upload_air", "2a. Enter Air Data (csv)")),
+                      
+                      p("Select Use of All if using one air temperature for multiple stream id"),
+                      splitLayout(selectInput("ID_colnm_air", "Linked Stream ID", choices = NULL),""),
+                      
+                      splitLayout(selectInput("date_colnm_air", "Date Column", choices = NULL),
+                                  textInput("date_format_air", "Input date format:", placeholder = "%m/%d/%Y", value = "%m/%d/%Y")
+                                  
+                      ),
+                      
+                      a("Date Format Tips", href="https://www.statmethods.net/input/dates.html"),
+                      
+                      splitLayout(selectInput("T_colnm_air", "Air Temperature", choices = NULL),
+                                  radioButtons("temp_unit_air", "Temperature Units", choices = c("celsius" = "cel",
+                                                                                                 "fahrenheit" = "fhr",
+                                                                                                 "kelvin" = "kel"))
+                      ),
+                  actionButton("add_air", "Join Air Temperature"))
+          }
+      
+  })
 
 }
 

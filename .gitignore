@@ -17,3 +17,5 @@ NorWeST_ObservedTempPoints_Arizona.shx
 NHD_Coweea/06/NHDPLUS_H_0601_HU4_GDB.zip
 *.svg
 NHD_Coweeta/06/NHDPLUS_H_0601_HU4_GDB.zip
+rsconnect/
+superceded_serverFunctions.R
