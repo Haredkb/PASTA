@@ -20,7 +20,7 @@ create_TMplot_df <- function(df){
         #stream data - with full set
         p_df_w <- df %>%
           left_join(., sin_wfit_coef, by = "site_id") %>%
-          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+          mutate(sin_fit_w = (sinSlope * sin(rad_day(date, "calendar"))) + (cosSlope * cos(rad_day(date, "calendar"))) + YInt)
         
         #sin coeffiecients
         sin_afit_coef <- lapply(names(df_temp_l), function(x){
@@ -32,7 +32,7 @@ create_TMplot_df <- function(df){
         #air data only keep to bind
         p_df_a <- df %>%
           left_join(., sin_afit_coef, by = "site_id") %>%
-          mutate(sin_fit_a = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)%>%
+          mutate(sin_fit_a = (sinSlope * sin(rad_day(date, "calendar"))) + (cosSlope * cos(rad_day(date, "calendar"))) + YInt)%>%
           dplyr::select("site_id", "date", "sin_fit_a")
           
         p_df <- left_join(p_df_w, p_df_a, by = c("site_id", "date"))
