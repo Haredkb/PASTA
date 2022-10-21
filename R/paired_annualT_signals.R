@@ -90,7 +90,7 @@ fit_TAS <- function(date, temp){
     dplyr::rename("temp" = 1)
   
   #convert to radian date for sinsoidal extract
-  df$rday <- rad_day(df$date)
+  df$rday <- rad_day(df$date, "calendar")
   
   #to convert back to Phase Days
   units_day <- 365

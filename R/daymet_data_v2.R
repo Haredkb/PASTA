@@ -56,7 +56,7 @@ output <- apply(locations, 1, function(location) {#by row
   lat <- as.numeric(location[2])
   lon <- as.numeric(location[3])
   start <- if_else(as.numeric(year(location[4]))> 1979, as.numeric(year(location[4])), 1980)
-  end <- if_else(as.numeric(year(location[5]))< 2021, as.numeric(year(location[5])), 2020)#needs to be updated every year
+  end <- if_else(as.numeric(year(location[5]))< 2022, as.numeric(year(location[5])), 2021)#needs to be updated every year
   #try(start <- as.numeric(year(start))) #as.numeric(format(location[4], "%Y"))) #default otherwise
   #try(end <-  as.numeric(year(end)))
   
