@@ -807,51 +807,67 @@ server <- function(input, output, session) {
   )
   #######
   #------Plots
+  #creating datatable for plotting
+  p_df <- reactive({
+    create_TMplot_df(Tem_df())
+  })
   
-p_df <- reactive({
-    df_temp_l <- Tem_df()%>% #Tem_df() %>%
-      split(f = as.factor(.$site_id))
-      # group_by(site_id, .add = TRUE) %>%
-      # group_split(.) 
+  #output for data tab
+  output$plot_tempdata <- renderPlotly({
     
-    saveRDS(df_temp_l, "df_temp_l.RDS")
+    rows <- length(unique(Tem_df()$site_id))*300 #~600px before you scroll
+    print(rows)
+    ggplotly(p_dataTS(p_df()), height = rows)%>%
+      plotly::layout(legend=list(x=0, 
+                                 xanchor='left',
+                                 yanchor='top',
+                                 orientation='h'))
     
-    sin_wfit_coef <- lapply(names(df_temp_l), function(x){
-      y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
-      z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
-      })%>% 
-      do.call("rbind", .)#make dataframe for sin coefficients
-       
-    saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
-    saveRDS(Tem_df(), "Tem_df_r.RDS")
-    saveRDS(TM_data(),  "TM_data.RDS")
-    saveRDS(TM_data_byyear(),  "TM_data_byyear.RDS")
-    #data
-      p_df <- Tem_df() %>%
-        left_join(., sin_wfit_coef, by = "site_id") %>%
-        mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+  })
+  
+# p_df <- reactive({
+#     df_temp_l <- Tem_df()%>% #Tem_df() %>%
+#       split(f = as.factor(.$site_id))
+#       # group_by(site_id, .add = TRUE) %>%
+#       # group_split(.) 
+#     
+#     saveRDS(df_temp_l, "df_temp_l.RDS")
+#     
+#     sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+#       y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+#       z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
+#       })%>% 
+#       do.call("rbind", .)#make dataframe for sin coefficients
+#        
+#     saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
+#     saveRDS(Tem_df(), "Tem_df_r.RDS")
+#     saveRDS(TM_data(),  "TM_data.RDS")
+#     saveRDS(TM_data_byyear(),  "TM_data_byyear.RDS")
+#     #data
+#       p_df <- Tem_df() %>%
+#         left_join(., sin_wfit_coef, by = "site_id") %>%
+#         mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
+#     #print(p_df)
+#     saveRDS(p_df, "p_df.RDS")
+#     p_df
+# })
     
-    #print(p_df)
-    saveRDS(p_df, "p_df.RDS")
-    p_df
-})
-    
-  output$plot_tempdata <-renderPlotly({
-        p <- ggplot(p_df()) +
-                  geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
-                  geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
-                  geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
-                  #ggtitle("test")+
-                  xlab("Date")+
-                  ylab("Water Temperature (C)")+
-                  theme_bw()+
-                    facet_grid(rows = vars(site_id)) #rows = vars(site_id))
-        
-        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
-        
-        ggplotly(p, height = rows)
-        
-    })
+  # output$plot_tempdata <-renderPlotly({
+  #       p <- ggplot(p_df()) +
+  #                 geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
+  #                 geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
+  #                 geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
+  #                 #ggtitle("test")+
+  #                 xlab("Date")+
+  #                 ylab("Water Temperature (C)")+
+  #                 theme_bw()+
+  #                   facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+  #       
+  #       rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
+  #       
+  #       ggplotly(p, height = rows)
+  #       
+  #   })
   
   
   output$plot_TS <-renderPlotly({

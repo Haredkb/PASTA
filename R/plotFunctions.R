@@ -35,7 +35,8 @@ create_TMplot_df <- function(df){
           mutate(sin_fit_a = (sinSlope * sin(rad_day(date, "calendar"))) + (cosSlope * cos(rad_day(date, "calendar"))) + YInt)%>%
           dplyr::select("site_id", "date", "sin_fit_a")
           
-        p_df <- left_join(p_df_w, p_df_a, by = c("site_id", "date"))
+        p_df <- left_join(p_df_w, p_df_a, by = c("site_id", "date"))%>%
+          dplyr::mutate(date = as.Date(date, format = "%Y-%m-%d"))
         
       return(p_df)
 }
@@ -48,8 +49,8 @@ p_dataTS <- function(p_df){#p_df is a reactiveValue
   p <- ggplot(data = p_df) +
     geom_point(aes(x = date, y = tavg_air_C, color = "Air Raw"))+
     geom_point(aes(x = date, y = tavg_wat_C,color = "Water Raw"))+
-    geom_path(aes(x = date, y = sin_fit_a, color = "Air Fit"))+
-    geom_path(aes(x = date, y = sin_fit_w, color = "Water Fit"))+
+    geom_path(aes(x = date, y = sin_fit_a, group = site_id, color = "Air Fit"))+
+    geom_path(aes(x = date, y = sin_fit_w, group = site_id, color = "Water Fit"))+
     #ggtitle("test")+
     xlab("Date")+
     ylab("Temperature (C)")+

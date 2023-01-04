@@ -79,8 +79,6 @@ rad_day <- function(x, yr_type){ #input date vector
 # }
 # )
 
-
-
 #TAS: Temperature Annual Signal
 #can be used for air temp and surface water temperature extraction of annual signal 
 fit_TAS <- function(date, temp){

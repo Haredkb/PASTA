@@ -169,7 +169,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                                           end   = as.Date("2015-09-30"),
                                           min    = as.Date("1980-01-01"),
                                           max    = as.Date("2021-12-30")),
-                           useShinyalert(),
+                           #useShinyalert(),
                            actionButton(
                              inputId = ns("searchsites"),
                              label = "Search for Available Sites"),
