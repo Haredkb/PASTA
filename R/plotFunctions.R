@@ -87,7 +87,7 @@ plot_TMlm <- function(p_df){
 #plot annual sinusoidal results
 plot_TMas <-function(TM_data){
   p <- ggplot() +
-    geom_point(data = TM_data, aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
+    geom_point(data = TM_data, aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id), shape = factor(year)))+
     #ggtitle("test")+
     #scale_shape_manual(values=seq(0,15))+
     scale_color_viridis(discrete=TRUE, option = "turbo")+
@@ -98,12 +98,12 @@ plot_TMas <-function(TM_data){
 
 
 ###################################
-#Leaflet Functions provided by Zach Johson
+#Leaflet Functions provided by Zach Johnson
 ###################################
 
 # Custom functions for leaflet map
-zSetupMap <- function(table){
-  result <- leaflet(data=table) %>% addTiles(group='OpenStreetMap') %>% # create leaflet map & add base layer
+zSetupMap <- function(TM_data){
+  result <- leaflet(data=TM_data) %>% addTiles(group='OpenStreetMap') %>% # create leaflet map & add base layer
     addProviderTiles(providers$OpenTopoMap,group="OpenTopoMap") %>% # add OpenTopoMap base layer
     addProviderTiles(providers$Esri.WorldImagery,group="Esri.WorldImagery")
   return(result)

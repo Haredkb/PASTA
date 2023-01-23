@@ -615,7 +615,7 @@ nwisServer <- function(id) {
                     
                     #print(df)
                     ## for debugging
-                    saveRDS(df, "df_nwis_output.RDS")
+                    #saveRDS(df, "df_nwis_output.RDS")
                     
                     return(df)
                   })
@@ -909,7 +909,7 @@ norwestServer <- function(id) {
           dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)%>% #out of range.
           dplyr::select(site_id, date, tavg_wat_C, tavg_air_C)
         
-        print(output)
+        #print(output)
         return(output)
       })
       
@@ -1033,34 +1033,35 @@ norwestServer <- function(id) {
       
       #######
       #------Plots
-      
       p_df <- reactive({
-        df_temp_l <- Tem_df()%>% #Tem_df() %>%
-          split(f = as.factor(.$site_id))
-        # group_by(site_id, .add = TRUE) %>%
-        # group_split(.) 
-        
-        saveRDS(df_temp_l, "df_temp_l_envC.RDS")
-        
-        sin_wfit_coef <- lapply(names(df_temp_l), function(x){
-          y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
-          z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
-        })%>% 
-          do.call("rbind", .)#make dataframe for sin coefficients
-        
-        saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
-        saveRDS(Tem_df(), "Tem_df_r.RDS")
-        saveRDS(TM_data(),  "TM_data_envC.RDS")
-        #data
-        p_df <- Tem_df() %>%
-          left_join(., sin_wfit_coef, by = "site_id") %>%
-          mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)%>%
-          
-        
-        #print(p_df)
-        saveRDS(p_df, "p_df.RDS")
-        p_df
+        create_TMplot_df(Tem_df())
       })
+      
+      # p_df <- reactive({
+      #   df_temp_l <- Tem_df()%>% #Tem_df() %>%
+      #     split(f = as.factor(.$site_id))
+      #   # group_by(site_id, .add = TRUE) %>%
+      #   # group_split(.)
+      # 
+      #   sin_wfit_coef <- lapply(names(df_temp_l), function(x){
+      #     y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+      #     z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
+      #   })%>%
+      #     do.call("rbind", .)#make dataframe for sin coefficients
+      # 
+      #   #saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
+      #   #saveRDS(Tem_df(), "Tem_df_r.RDS")
+      #   #saveRDS(TM_data(),  "TM_data_envC.RDS")
+      #   ##data
+      #   p_df <- Tem_df() %>%
+      #     left_join(., sin_wfit_coef, by = "site_id") %>%
+      #     mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)%>%
+      # 
+      # 
+      #   #print(p_df)
+      #   #saveRDS(p_df, "p_df.RDS")
+      #   p_df
+      # })
       
       output$downloadSinData <- downloadHandler(
         filename = function() {

@@ -721,7 +721,7 @@ server <- function(input, output, session) {
     Tem_df <- left_join(sTem_df(), aTem_df(), by = c("site_id", "date"))%>%
     na.omit()
     
-    saveRDS(Tem_df, "Tem_df_20220927.RDS")
+    #saveRDS(Tem_df, "Tem_df_20220927.RDS")
     
     Tem_df
     
@@ -872,7 +872,6 @@ server <- function(input, output, session) {
   
   output$plot_TS <-renderPlotly({
     p <- p_df() %>%
-      filter(tavg_wat_C > 1)%>%
       ggplot(aes(x = tavg_air_C, y = tavg_wat_C, color = factor(year(date)))) +
       geom_point()+
       stat_smooth(method = "lm", col = "red")+
@@ -894,9 +893,10 @@ server <- function(input, output, session) {
   
   output$plot_TAS <-renderPlotly({
     p <- ggplot() +
-      geom_point(data = TM_data_byyear(), aes(x = PhaseLag_d, y = AmpRatio, colour = factor(site_id)))+
-      #ggtitle("test")+
-      #scale_shape_manual(values=seq(0,15))+
+      geom_point(data = TM_data_byyear(), aes(x = PhaseLag_d, 
+                                              y = AmpRatio, 
+                                              colour = factor(site_id), 
+                                              stroke = factor(year(date))))+
       scale_color_viridis(discrete=TRUE, option = "turbo")+
       labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
       ylim(0,1.2)+

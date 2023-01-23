@@ -59,20 +59,14 @@ filelist_retrieval <- function(resource_id, username, password){
 ############'
 ### CORE PREP ANALYSIS for Thermal Metrics(TM)
 ############
-therm_analysis <- function(df_tem){#, df_loc){ 
-  #df(3col) must have first column siteID, second column date, and third stream tempC; df_loc(3 col) must have siteID and lat long
+therm_analysis <- function(df_tem){ 
+  
   Start_time = Sys.time()
 
   df_temp <- df_tem %>%
-    dplyr::rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)
+    dplyr::rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)%>%
+    dplyr::filter(tavg_wat_C > 1)
   
-  ### ADD IN MAKING SURE ITS DAILY TIME STEPS
-  
-  ### Add in sepate function 
-  # df_loc <- df_loc %>%
-  #   rename("site_id" =1, "lat" =2 , "long"=3, "start.date" = 4, "end.date" = 5)%>%
-  #   dplyr::select(2:5,1)#reorder so lat and long are 1 and 2
-
   #make station ids factors for grouping
   df_temp$site_id <- as.factor(df_temp$site_id)
         

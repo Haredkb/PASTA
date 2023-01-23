@@ -41,14 +41,14 @@ getNorwestData <- function(NorweStProcessingUnit){
     temp <- tempfile()
     temp2 <- tempfile()
     download.file(link_df,temp)
-    data <- readxl::read_excel(unzip(temp))
-    
+    data <- readxl::read_excel(utils::unzip(temp))
+    unlink(temp)
     names(data)[2] <- tolower(names(data)[2])#trying to find some consistency is Norwest _id always 2? the cases are 
     #-----------------------------------------------------------------------------------------------#
     #-----------------------------------------------------------------------------------------------#
     #-----------------------------------------------------------------------------------------------#
     download.file(link_shp,temp)
-    unzip(zipfile = temp, exdir = temp2)
+    utils::unzip(zipfile = temp, exdir = temp2)
     #finds the filepath of the shapefile (.shp) file in the temp2 unzip folder
     #the $ at the end of ".shp$" ensures you are not also finding files such as .shp.xml 
     SHP_file<-list.files(temp2, pattern = ".shp$",full.names=TRUE)
