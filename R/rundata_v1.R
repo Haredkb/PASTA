@@ -59,7 +59,7 @@ filelist_retrieval <- function(resource_id, username, password){
 ############'
 ### CORE PREP ANALYSIS for Thermal Metrics(TM)
 ############
-therm_analysis <- function(df_tem){ 
+therm_analysis <- function(df_tem, yr_type){ 
   
   Start_time = Sys.time()
 
@@ -97,13 +97,13 @@ therm_analysis <- function(df_tem){
         #####----------Paired Air SW Temperature Annual Signal Analysis ----######## 
         
         ## Calculate Temperature Annual Signal Fit for both Air and Water Temperature 
-        TAS_sin_fit <- lapply(names(df_temp_l), function(x){
+        TAS_sin_fit <- lapply(names(df_temp_l), function(x, yr_type){
           # df_temp_l[[x]] %>%
           #   mutate(radian_day = rad_day(.[,"Date"]))
           
-          Tair_fit <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_air_C"])
+          Tair_fit <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_air_C"], yr_type)
           Tair_fit$medium <- "air"
-          Twat_fit <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
+          Twat_fit <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"], yr_type)
           Twat_fit$medium <- "water"
           
           #combine the water and air fits into one dataframe

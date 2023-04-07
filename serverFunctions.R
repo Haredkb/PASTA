@@ -185,7 +185,7 @@
 #       TM_data <- eventReactive(
 #         #rerun when button is pressed
 #         input$gobutton,{
-#                 TMy_output(Tem_df()) #create yearly annual signal analysis 
+#                 TMy_output(Tem_df(), input$yr_type) #create yearly annual signal analysis 
 #           })
 # 
 #       # Create output table
@@ -580,9 +580,6 @@ nwisServer <- function(id) {
                     aTem <- batch_daymet(as.data.frame(download_data()[2])) # all data available from daymet can be assessed here
                     #clean data and pull out avgdaily air temperature 
                     
-                    
-                    
-                  
                     aTem <- clean_daymet(aTem)%>%
                       dplyr::select(site_id, date, tavg_air_C)
                     
@@ -592,7 +589,7 @@ nwisServer <- function(id) {
                   
                     #join air ad stream temp in a table to have attributed needed for therm_analysis
                     df <- dplyr::left_join(df, aTem, by = c("site_id", "date"))%>%
-                      na.omit() %>%
+                      drop_na(-one_of("flow")) %>% #drop rows with any na expect for columns with flow
                       dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)
                     
                     if("flow" %in% colnames(df)){
@@ -612,10 +609,6 @@ nwisServer <- function(id) {
                       
                       try(df <- left_join(df, bfi_df))
                     }
-                    
-                    #print(df)
-                    ## for debugging
-                    #saveRDS(df, "df_nwis_output.RDS")
                     
                     return(df)
                   })
@@ -643,7 +636,7 @@ nwisServer <- function(id) {
                 # 
                 metric_table <- reactive({
                   full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
-                            left_join(therm_analysis(data()), data_gap_check(data()), by = "site_id"), 
+                            left_join(therm_analysis(data(), input$yr_type), data_gap_check(data()), by = "site_id"), 
                             by = c("site_no" = "site_id"))
                   # %>%
                   #   left_join(., bfi_df(), by = c("site_no" = "site_id"))
@@ -683,7 +676,7 @@ nwisServer <- function(id) {
                     paste("AnnualSignalFit_NWIS.csv")
                   },
                   content = function(file) {
-                    write.csv(attr(therm_analysis(data()), 'sine_fit'), file, row.names = FALSE)
+                    write.csv(attr(therm_analysis(data(), input$yr_type), 'sine_fit'), file, row.names = FALSE)
                   }
                 )
                 
@@ -692,7 +685,7 @@ nwisServer <- function(id) {
                 
                 ### conduct yearly thermal analysis
                 TM_data_byyear <- eventReactive(input$gobutton,{
-                  TMy_output(data())
+                  TMy_output(data(), input$yr_type)
                   
                 })
                 
@@ -703,6 +696,8 @@ nwisServer <- function(id) {
                                 backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
                     formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
                                 backgroundColor = 'lightblue') %>%
+                    formatStyle(c("count"),
+                                backgroundColor = styleInterval(150, c('red', 'white'))) %>%
                     formatStyle(c("max_conseq_missing_days"),
                                 backgroundColor = styleInterval(49, c('white', 'orange'))) 
                 })
@@ -719,7 +714,7 @@ nwisServer <- function(id) {
                 
                 #creating datatable for plotting
                 p_df <- reactive({
-                  create_TMplot_df(data())
+                  create_TMplot_df(data(), input$yr_type)
                 })
                 
                 #output for data tab
@@ -999,7 +994,7 @@ norwestServer <- function(id) {
       TM_data <- eventReactive(
         #rerun when button is pressed
         input$gobutton,{
-          TMy_output(Tem_df()) #create yearly annual signal analysis 
+          TMy_output(Tem_df(), input$yr_type) #create yearly annual signal analysis 
         })
       
       # Create output table
@@ -1010,14 +1005,16 @@ norwestServer <- function(id) {
             formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
                         backgroundColor = 'lightblue') %>%
             formatStyle(c("max_conseq_missing_days"),
-                        backgroundColor = styleInterval(49, c('white', 'orange'))) 
+                        backgroundColor = styleInterval(49, c('white', 'orange'))) %>%
+            formatStyle(c("count"),
+                       backgroundColor = styleInterval(200, c('white', 'orange'))) 
         
       })
       
       ##Download Metric Output Table
       output$downloadData <- downloadHandler(
         filename = function() {
-          paste("ThermalMetrics_envCan.csv")
+          paste("ThermalMetrics_NorWeST.csv")
         },
         content = function(file) {
           write.csv(TM_data(), file, row.names = FALSE)
@@ -1034,34 +1031,9 @@ norwestServer <- function(id) {
       #######
       #------Plots
       p_df <- reactive({
-        create_TMplot_df(Tem_df())
+        create_TMplot_df(Tem_df(), input$yr_type)
       })
       
-      # p_df <- reactive({
-      #   df_temp_l <- Tem_df()%>% #Tem_df() %>%
-      #     split(f = as.factor(.$site_id))
-      #   # group_by(site_id, .add = TRUE) %>%
-      #   # group_split(.)
-      # 
-      #   sin_wfit_coef <- lapply(names(df_temp_l), function(x){
-      #     y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
-      #     z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
-      #   })%>%
-      #     do.call("rbind", .)#make dataframe for sin coefficients
-      # 
-      #   #saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
-      #   #saveRDS(Tem_df(), "Tem_df_r.RDS")
-      #   #saveRDS(TM_data(),  "TM_data_envC.RDS")
-      #   ##data
-      #   p_df <- Tem_df() %>%
-      #     left_join(., sin_wfit_coef, by = "site_id") %>%
-      #     mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)%>%
-      # 
-      # 
-      #   #print(p_df)
-      #   #saveRDS(p_df, "p_df.RDS")
-      #   p_df
-      # })
       
       output$downloadSinData <- downloadHandler(
         filename = function() {
@@ -1072,20 +1044,15 @@ norwestServer <- function(id) {
         }
       )
       
-      output$plot_tempdata <-renderPlotly({
-        p <- ggplot(p_df()) +
-          geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
-          geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
-          geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
-          #ggtitle("test")+
-          xlab("Date")+
-          ylab("Water Temperature (C)")+
-          theme_bw()+
-          facet_grid(rows = vars(site_id)) #rows = vars(site_id))
+      output$plot_tempdata <- renderPlotly({
         
-        rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
-        
-        ggplotly(p, height = rows)
+        rows <- length(unique(Tem_df()$site_id))*300 #~600px before you scroll
+        print(rows)
+        ggplotly(p_dataTS(p_df()), height = rows)%>%
+          plotly::layout(legend=list(x=0, 
+                                     xanchor='left',
+                                     yanchor='top',
+                                     orientation='h'))
         
       })
       
@@ -1109,17 +1076,22 @@ norwestServer <- function(id) {
         
         rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
         
-        ggplotly(p, height = rows)
+        ggplotly(p, height = rows)%>%
+          plotly::layout(legend=list(x=0, 
+                                     xanchor='left',
+                                     yanchor='top',
+                                     orientation='h'))
         
       })
       
       output$plot_TAS <-renderPlotly({
         
-        ggplotly(plot_TMas(TM_data()), height =600)%>% #px )%>%
+        ggplotly(plot_TMas(TM_data(), height =600)%>% #px
           plotly::layout(legend=list(x=0, 
                                      xanchor='left',
                                      yanchor='top',
                                      orientation='h'))
+        )
         
       })
       

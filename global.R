@@ -20,6 +20,7 @@ suppressPackageStartupMessages({
   library(plotly)
   library(ggplot2)
   library(viridis)
+  library(tidyr)
   #web scraping
   library(xml2)
   library(rvest)

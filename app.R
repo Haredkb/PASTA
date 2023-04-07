@@ -46,19 +46,20 @@ ui <- fluidPage(
           fluidRow(
             column(3),
             column(6,
-                   shiny::HTML("<br><br><center> <h1>Analysis Infomation and Overview</h1> </center><br>"),
-                   shiny::HTML("<h4>Utlize the tabs on the top to select the source of stream temperature data: current options are NWIS, 
-                                select Environmental Canada Data, and user uploads from direct upload or HydroShare resources.
+                   shiny::HTML("<br><br><center> <h1>Analysis Information and Overview</h1> </center><br>"),
+                   shiny::HTML("<h4>Utilize the tabs on the top to select the source of stream temperature data: current options are (1) NWIS, 
+                                (2) <a href='https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/StreamTemperatureDataSummaries.shtml'> NorWeST </a>(Chandler et al. 2016), 
+                                and user uploads from direct upload or <a href= 'https://www.hydroshare.org/'> HydroShare </a> resources.
                                The analyses conducted use the correlation between air and stream temperature 
                                to support interferences about hydrologic processes. Two analyses are performed: 
-                               (1) Annual Signal Analysis, where the daily stream and air mean temperatureare fit to a sinusoid, and the 
-                               compartive metrics are extracted - Amplitude Ratio, Phase lag (days), and Mean Ratio (e.g. Johnson et al. 2020, Hare et al. 2021)
-                               (2) Daily (or weekly) mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016)")
+                               (1) Annual Signal Analysis, where the daily mean air and stream temperature are fit to a sinusoid, and the 
+                               comparative metrics are extracted - Amplitude Ratio, Phase lag (days), and Mean Ratio (e.g. Johnson et al. 2020, Hare et al. 2021); 
+                               (2) Daily mean temperature are compared through a linear regression (Kelleher et al. 2012, Letcher et al. 2016)")
             ),
             column(3)
           ),
           fluidRow(
-            shiny::HTML("<br><br><h4>Example Stream Temperature, Site Location, and Air Temperature Data. Data from Boose(2022)A and Boose(2022)B</h1>"),
+            shiny::HTML("<br><br><h4>Example Stream Temperature, Site Location, and Air Temperature Data from Boose (2022a) and Boose (2022b) </h1>"),
             # downloadButton("downloadEgTemp_s", "Download Example Stream Temperature Input Files"),
             # downloadButton("downloadEgLoc", "Download Example Location Input Files"),
             # downloadButton("downloadEgTemp_a", "Download Example Air Temperature Input Files"),
@@ -77,25 +78,28 @@ ui <- fluidPage(
             column(1),
             column(10,
                    shiny::HTML("<br><br><center> <h1>Citations</h1> </center><br>"),
-                   shiny::HTML("<h4> Hare, DK, Helton AM, Johnson ZC, Lane JW, and Briggs MA (2021) Continental-scale analysis of shallow and deep groundwater contributions to streams. Nature Communications 12, 1450. https://doi.org/10.1038/s41467-021-21651-0
-                   <br>
-                   <br>
-                                      Johnson, ZC, BG Johnson, MA Briggs, WD Devine, CD Snyder, NP Hitt, DK Hare, TV Minkova (2020). Paired air-water annual temperature Patterns reveal hydrogeological controls on stream thermal regimes at watershed to continental scales. Journal of Hydrology. https://doi.org/10.1016/J.JHYDROL.2020.124929
+                   shiny::HTML("<h4> 
+                                    Chandler, G.L.; Wollrab, S.P.; Horan, D. L.; Nagel, D. E.; Parkes, S.L.; Isaak, D.J.; Wenger, S.J.; Peterson, E.E.; Ver Hoef, J.M.; Hostetler, S.W.; Luce, C.H.; Dunham, J.B.; Kershner, J.L.; Roper, B.B. 2016. NorWeST stream temperature data summaries for the western U.S. Fort Collins, CO: Forest Service Research Data Archive. https://doi.org/10.2737/RDS-2016-0032.
+                                     <br>
+                                     <br>
+                                    Hare, DK, Helton AM, Johnson ZC, Lane JW, and Briggs MA (2021) Continental-scale analysis of shallow and deep groundwater contributions to streams. Nature Communications 12, 1450. https://doi.org/10.1038/s41467-021-21651-0
+                                     <br>
+                                     <br>
+                                    Johnson, ZC, BG Johnson, MA Briggs, WD Devine, CD Snyder, NP Hitt, DK Hare, TV Minkova (2020). Paired air-water annual temperature Patterns reveal hydrogeological controls on stream thermal regimes at watershed to continental scales. Journal of Hydrology. https://doi.org/10.1016/J.JHYDROL.2020.124929
                                       <br>
                                       <br>
-                                     Kelleher, C., Wagener, T., Gooseff, M., McGlynn, B., McGuire, K., Marshall, L., 2012. Investigating controls on the thermal sensitivity of Pennsylvania streams. Hydrol. Process. 26, 771 https://doi.org/10.1002/hyp.8186
+                                    Kelleher, C., Wagener, T., Gooseff, M., McGlynn, B., McGuire, K., Marshall, L., 2012. Investigating controls on the thermal sensitivity of Pennsylvania streams. Hydrol. Process. 26, 771 https://doi.org/10.1002/hyp.8186
                                      <br>
                                      <br>
-                                     Letcher, B.H., Hocking, D.J., Neil, K.O., Whiteley, A.R., Nislow, K.H., Donnell, M.J.O., 2016. A hierarchical model of daily stream temperature using air-water temperature synchronization , autocorrelation , and time lags. PeerJ https://doi.org/10.7717/Peerj.1727
+                                    Letcher, B.H., Hocking, D.J., Neil, K.O., Whiteley, A.R., Nislow, K.H., Donnell, M.J.O., 2016. A hierarchical model of daily stream temperature using air-water temperature synchronization , autocorrelation , and time lags. PeerJ https://doi.org/10.7717/Peerj.1727
                                      <br>
                                      <br>
-                                     Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840
+                                    Thornton, M.M., R. Shrestha, Y. Wei, P.E. Thornton, S. Kao, and B.E. Wilson. 2020. Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1840
                                      <br>
                                      <br>
-                                     Example Data Files from: 
-                                     Boose E. 2022. Prospect Hill Hydrological Stations at Harvard Forest since 2005. Harvard Forest Data Archive: HF070 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/facbd72c5bee71da4fa8a5fe89574992.
-                                     Boose E. 2022. Fisher Meteorological Station at Harvard Forest since 2001. Harvard Forest Data Archive: HF001 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/a0083f14a6475b78b0bbb2abf26eb295.
-                               .</h4>")
+                                    Example Data Files from: 
+                                    Boose E. 2022a. Prospect Hill Hydrological Stations at Harvard Forest since 2005. Harvard Forest Data Archive: HF070 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/facbd72c5bee71da4fa8a5fe89574992.
+                                    Boose E. 2022b. Fisher Meteorological Station at Harvard Forest since 2001. Harvard Forest Data Archive: HF001 (v.27). Environmental Data Initiative: https://doi.org/10.6073/pasta/a0083f14a6475b78b0bbb2abf26eb295.</h4>")
             ),
             column(1)
           ),
@@ -184,7 +188,7 @@ ui <- fluidPage(
                                       Required datasets are stream temperature dataaset (multiple sites allowed),
                                       and site location dataset with matching site ids, csvs are required.  
                                       Stream datasets require columns: site ID, stream temperature, date (or date time, but only put date attributed in date input format).
-                                      Uploads can take some time please be patient.Example Stream Temperature, Site Location, and Air Temperature Data are available on Information Tab"),
+                                      Uploads can take some time, please be patient. Example Stream Temperature, Site Location, and Air Temperature Data are available on Information Tab"),
                               hr(),
                               
                               #div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
@@ -228,13 +232,14 @@ ui <- fluidPage(
                               box(title ="1b: Choose the columns names that correspond to the correct variables:", status = "primary",width = 12, 
                                             p("Uploaded Table shows up at bottom of page if you need reference"),
                                             splitLayout(selectInput("ID_colnm", "Site ID Column", choices = NULL),""),
-
+                                  
+                                  a("Date Format Tips", href="https://www.statmethods.net/input/dates.html"),
                                             splitLayout(selectInput("date_colnm", "Date Column", choices = NULL),
                                                         textInput("date_format", "Input date format:", placeholder = "%m/%d/%Y", value = "%m/%d/%Y")
 
                                             ),
 
-                                          a("Date Format Tips", href="https://www.statmethods.net/input/dates.html"),
+                                          
 
                                             splitLayout(selectInput("T_colnm", "Stream Temperature", choices = NULL),
                                                         radioButtons("temp_unit", "Temperature Units", choices = c("celsius" = "cel",
@@ -270,7 +275,11 @@ ui <- fluidPage(
                                       
                                       hr(),
                                       
-                                
+                                     radioButtons("yr_type", "Conduct Annual Signal Analysis via Water Year (October Start - recommended) or Calendar Year (January Start)?", 
+                                                  choices = c("Calendar" = "calendar", 
+                                                              "Water Year" = "water"), 
+                                                  selected = "water"),
+                                     
                                       h4("4: Run the analysis!"),
                                       actionButton("calc_metric_u", "Calculate Thermal Metrics",
                                                    style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
@@ -300,6 +309,8 @@ ui <- fluidPage(
 
                               
         tabPanel("Thermal Metric Results",
+                 fluidRow(
+                 img(src='InterpretationTable.jpeg', align = "right"),
                  h4("Metric Data Table"),
                  h5("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                  p("Amp_Ratio is Amplitude Ratio, unitless"),
@@ -317,7 +328,7 @@ ui <- fluidPage(
                                         downloadButton("download_user_dataTM", "Download Thermal Metric DataTable"),
                                         DT::dataTableOutput("user_yearlyTM"),
                                         downloadButton("download_user_yearlyTM", "Download Yearly Thermal Metric DataTable")
-                                        
+                 )
                                ),# end results panel
         
         
@@ -754,12 +765,12 @@ server <- function(input, output, session) {
   ### conduct thermal analysis
   TM_data <- eventReactive(input$calc_metric_u,{
     #conduct therm analysis 
-    left_join(therm_analysis(Tem_df()), data_gap_check(Tem_df()), by = "site_id")  
+    left_join(therm_analysis(Tem_df(), input$yr_type), data_gap_check(Tem_df()), by = "site_id")  
   })
   
   ### conduct yearly thermal analysis
   TM_data_byyear <- eventReactive(input$calc_metric_u,{
-      TMy_output(Tem_df())
+      TMy_output(Tem_df(), input$yr_type)
     
   })
   
@@ -770,6 +781,8 @@ server <- function(input, output, session) {
         backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
       formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
         backgroundColor = 'lightblue') %>%
+      formatStyle(c("count"),
+                  backgroundColor = styleInterval(150, c('red', 'white'))) %>%
     formatStyle(c("max_conseq_missing_days"),
                 backgroundColor = styleInterval(49, c('white', 'orange')))# greater than 49 indicates poor data (large data gaps) 
   })
@@ -791,6 +804,8 @@ server <- function(input, output, session) {
                   backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
       formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
                   backgroundColor = 'lightblue') %>%
+      formatStyle(c("count"),
+                  backgroundColor = styleInterval(150, c('red', 'white'))) %>%
       formatStyle(c("max_conseq_missing_days"),
                   backgroundColor = styleInterval(49, c('white', 'orange'))) 
   })
@@ -809,7 +824,7 @@ server <- function(input, output, session) {
   #------Plots
   #creating datatable for plotting
   p_df <- reactive({
-    create_TMplot_df(Tem_df())
+    create_TMplot_df(Tem_df(), input$yr_type)
   })
   
   #output for data tab
@@ -825,50 +840,7 @@ server <- function(input, output, session) {
     
   })
   
-# p_df <- reactive({
-#     df_temp_l <- Tem_df()%>% #Tem_df() %>%
-#       split(f = as.factor(.$site_id))
-#       # group_by(site_id, .add = TRUE) %>%
-#       # group_split(.) 
-#     
-#     saveRDS(df_temp_l, "df_temp_l.RDS")
-#     
-#     sin_wfit_coef <- lapply(names(df_temp_l), function(x){
-#       y <- fit_TAS(df_temp_l[[x]][,"date"], df_temp_l[[x]][,"tavg_wat_C"])
-#       z <- mutate(y, site_id = x)#add column with site_id as it is droped in the lapply process
-#       })%>% 
-#       do.call("rbind", .)#make dataframe for sin coefficients
-#        
-#     saveRDS(sin_wfit_coef, "sin_wfit_coef.RDS")
-#     saveRDS(Tem_df(), "Tem_df_r.RDS")
-#     saveRDS(TM_data(),  "TM_data.RDS")
-#     saveRDS(TM_data_byyear(),  "TM_data_byyear.RDS")
-#     #data
-#       p_df <- Tem_df() %>%
-#         left_join(., sin_wfit_coef, by = "site_id") %>%
-#         mutate(sin_fit_w = (sinSlope * sin(rad_day(date))) + (cosSlope * cos(rad_day(date))) + YInt)
-#     #print(p_df)
-#     saveRDS(p_df, "p_df.RDS")
-#     p_df
-# })
-    
-  # output$plot_tempdata <-renderPlotly({
-  #       p <- ggplot(p_df()) +
-  #                 geom_line(aes(x = date, y = tavg_air_C), color = "orange")+
-  #                 geom_point(aes(x = date, y = tavg_wat_C),color = "lightblue")+
-  #                 geom_line(aes(x = date, y = sin_fit_w), color = "blue")+
-  #                 #ggtitle("test")+
-  #                 xlab("Date")+
-  #                 ylab("Water Temperature (C)")+
-  #                 theme_bw()+
-  #                   facet_grid(rows = vars(site_id)) #rows = vars(site_id))
-  #       
-  #       rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
-  #       
-  #       ggplotly(p, height = rows)
-  #       
-  #   })
-  
+#
   
   output$plot_TS <-renderPlotly({
     p <- p_df() %>%
@@ -887,7 +859,11 @@ server <- function(input, output, session) {
     
     rows <- length(unique(p_df()$site_id))*200 #~600px before you scroll
     
-    ggplotly(p, height = rows)
+    ggplotly(p, height = rows)%>%
+      plotly::layout(legend=list(x=0, 
+                                 xanchor='left',
+                                 yanchor='top',
+                                 orientation='h'))
     
   })
   

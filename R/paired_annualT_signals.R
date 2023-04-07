@@ -9,7 +9,9 @@ library(smwrBase)
 data_gap_check <- function(df){
   #df <- Tem_df#bebuggg remove
   #df <- T.y
-  df <- na.omit(df) %>%
+  df_1 <- df %>%
+    dplyr::select(-one_of(c("flow", "bfi_daily")))%>% #one_of allows df without flow or bfi daily
+    na.omit(df) %>%
     dplyr::filter(tavg_wat_C < 70) #removing weird values
   
   df_l <- lapply(unique(df$site_id), function(x){
@@ -21,7 +23,9 @@ data_gap_check <- function(df){
                 
                 val <- as.numeric(max(df.x$datediff, na.rm = TRUE))
                 
-                df.y <- data.frame("site_id" = as.character(x),"max_conseq_missing_days" = val)
+                peryear <- as.numeric(nrow(df.x))
+                
+                df.y <- data.frame("site_id" = as.character(x),"max_conseq_missing_days" = val, "count" = peryear)
               }
       
         )#end lapply
@@ -81,14 +85,14 @@ rad_day <- function(x, yr_type){ #input date vector
 
 #TAS: Temperature Annual Signal
 #can be used for air temp and surface water temperature extraction of annual signal 
-fit_TAS <- function(date, temp){
+fit_TAS <- function(date, temp, yr_type){
   
   df <- as.data.frame(unlist(temp)) %>%
     cbind(., date) %>%#has to be done second to keep format (?)
     dplyr::rename("temp" = 1)
   
   #convert to radian date for sinsoidal extract
-  df$rday <- rad_day(df$date, "calendar")
+  df$rday <- rad_day(df$date, yr_type)
   
   #to convert back to Phase Days
   units_day <- 365
@@ -127,19 +131,48 @@ return(lmStats)
   }
 
 #Thermal Metric Yearly Analysis. 
-TMy_output <- function(df){
+TMy_output <- function(df, yr_type){
   
-  T.y <- add_waterYear(df)
-  T.yl <- lapply(levels(T.y$year_water), function(x){
-    df.y <- T.y %>%
-    filter(year_water == x)#%>%
+  if(missing(yr_type)){
+    yr_type <- "water" #use water year unless calendar is specified
+  }
   
-    df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
+  # #calendar year
+  if(yr_type == "calendar"){
+    T.y <- df
+    T.y$year <- as.factor(year(T.y$date))
+    T.yl <- lapply(levels(T.y$year), function(x){
+      df.y <- T.y %>%
+        filter(year == x)#%>%
+      
+      df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
+      
+      df.j$year <- x # add water year as a valuBe in table
+      df.j$year_type <- yr_type
+      
+      df.j
+    }) #end of lapply
   
-  df.j$year <- x # add water year as a valuBe in table
+  #Water Year
+  } else {
+      T.y <- add_waterYear(df)
+      T.y$year_type <- yr_type
+      T.yl <- lapply(levels(T.y$year_water), function(x){
+                    df.y <- T.y %>%
+                      filter(year_water == x)#%>%
+                    
+                    df.j <- left_join(therm_analysis(df.y), data_gap_check(df.y), by = "site_id")
+                    
+                    df.j$year <- x # add water year as a valuBe in table
+                    df.j$year_type <- yr_type
+                    df.j
+  })
+  }
   
-  df.j})
-  
-  df <- do.call(rbind.data.frame, T.yl)#return single dataframe
+  df <- do.call(rbind.data.frame, T.yl)%>% #
+    mutate(AmpRatio = ifelse(count <= 100, NA, AmpRatio), #if count less than 100 do not report values - but stil can report linear values
+           PhaseLag_d = ifelse(count <= 100, NA, PhaseLag_d),
+           Ratio_Mean = ifelse(count <= 100, NA, Ratio_Mean),
+           )
 }
 

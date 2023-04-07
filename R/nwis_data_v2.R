@@ -1,23 +1,8 @@
-### USE NWIS AND DAYMET DATA 
-
-#could be useful https://stackoverflow.com/questions/35720660/how-to-use-an-r-script-from-github
-
 ### load and install packages
-#
-# install.packages("dataRetrieval")
+
 library(dataRetrieval)
-
-# install.packages("tidyverse")
 library(tidyverse)
-# 
-# # install.packages("ggplot2")
-# library(ggplot2)
-
 library(lubridate)
-
-#https://www.jumpingrivers.com/blog/personal-r-package/
-# path = file.path(tempdir(), "AnnualTSignals")
-# usethis::create_package(path)
 
 
   #######################################################
