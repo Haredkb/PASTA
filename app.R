@@ -367,7 +367,7 @@ server <- function(input, output, session) {
   ####
   ####
   #External Server
-  envCanServer("envCanModule")
+  #envCanServer("envCanModule")
   nwisServer("nwisModule")
   norwestServer("norwestModule")
   
@@ -869,12 +869,13 @@ server <- function(input, output, session) {
   
   output$plot_TAS <-renderPlotly({
     p <- ggplot() +
-      geom_point(data = TM_data_byyear(), aes(x = PhaseLag_d, 
+      geom_point(data = TM_data_byyear(), 
+                 aes(x = PhaseLag_d, 
                                               y = AmpRatio, 
                                               colour = factor(site_id), 
-                                              stroke = factor(year(date))))+
+                                              shape = factor(year)))+
       scale_color_viridis(discrete=TRUE, option = "turbo")+
-      labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Mean Ratio")+
+      labs(x = "Phase Lag (days)", y= "Amplitude Ratio", colour="Site ID", shape = paste(TM_data_byyear()$year_type[1], "Year"))+
       ylim(0,1.2)+
       theme_bw()
     
@@ -927,7 +928,7 @@ server <- function(input, output, session) {
                                                           ,Tab='\t', Space= " "), selected = ','),
                                   fileInput("upload_air", "2a. Enter Air Data (csv)")),
                       
-                      p("Select Use of All if using one air temperature for multiple stream id"),
+                      p("Select `Use of All` if using one air temperature for multiple stream id"),
                       splitLayout(selectInput("ID_colnm_air", "Linked Stream ID", choices = NULL),""),
                       
                       splitLayout(selectInput("date_colnm_air", "Date Column", choices = NULL),

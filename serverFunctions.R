@@ -422,7 +422,6 @@ nwisServer <- function(id) {
                     #filter(between(as.Date(begin_date), input$date.range[1], input$date.range[2])) %>%
                     dplyr::filter(end_date > input$date.range[2]) #end date greater than input end date 
                   
-                  df
                 })
                 
                 #Create Table - use this to select sites to analyze
@@ -538,16 +537,17 @@ nwisServer <- function(id) {
                                             format(input$date.range[2]))#end date)
                     #list [1] is stream temperature data, and [2] is location information
                     
-                    #download discharge if requesteds
-                    if(input$bfi ==TRUE){
-                      nwis_Q <- readNWIS_Q(site_table_s, #input$siteNo,#for use of dropdown 
-                                           # format(start.date), #input$date.range[1]), #start date
-                                           # format(end.date))
-                                           format(input$date.range[1]), #start date
-                                           format(input$date.range[2]))
-                      #replace dataframe 1 with QT
-                      nwis_l[[1]] <- dplyr::left_join(nwis_l[[1]], nwis_Q[[1]], by = c("site_id", "date"))
-                      }
+                    # REMOVED DUE TO DVSTATS PACKAGE TRANSITION TO GITLAB - 12/5/2023
+                    # #download discharge if requested
+                    # if(input$bfi ==TRUE){
+                    #   nwis_Q <- readNWIS_Q(site_table_s, #input$siteNo,#for use of dropdown 
+                    #                        # format(start.date), #input$date.range[1]), #start date
+                    #                        # format(end.date))
+                    #                        format(input$date.range[1]), #start date
+                    #                        format(input$date.range[2]))
+                    #   #replace dataframe 1 with QT
+                    #   nwis_l[[1]] <- dplyr::left_join(nwis_l[[1]], nwis_Q[[1]], by = c("site_id", "date"))
+                    #   }
                     
                     if (is.list(nwis_l) == FALSE) {
                       output$datafail <- renderText({
@@ -596,26 +596,28 @@ nwisServer <- function(id) {
                       df <-  df %>%
                       dplyr::relocate(flow, .after = last_col())}#move flow to the end so therm_analysis works 
                     
-                    #add daily BFI
-                    if(input$bfi ==TRUE){
-                      bfi_df <- lapply(unique(df$site_id), function(id){
-                        bf_a <- df %>%
-                          dplyr::filter(site_id == id)
-                        
-                        output <- baseflow_calc(bf_a$date, bf_a$flow, id)
-  
-                        })%>%
-                        do.call("rbind",.)
-                      
-                      try(df <- left_join(df, bfi_df))
-                    }
+                    # REMOVED 12-12-2023 for review
+                    ##add daily BFI
+                    # if(input$bfi ==TRUE){
+                    #   bfi_df <- lapply(unique(df$site_id), function(id){
+                    #     bf_a <- df %>%
+                    #       dplyr::filter(site_id == id)
+                    #     
+                    #     output <- baseflow_calc(bf_a$date, bf_a$flow, id)
+                    # 
+                    #     })%>%
+                    #     do.call("rbind",.)
+                    #   
+                    #   try(df <- left_join(df, bfi_df))
+                    # }
                     
                     return(df)
                   })
                   
                   #create location dataframe for maps
                 loc_df <- reactive({
-                    df <- as.data.frame(download_data()[2])
+                    df <- as.data.frame(download_data()[2])%>%
+                      dplyr::mutate(site_id = site_no)
                     return(df)
                   })
                 
@@ -635,7 +637,7 @@ nwisServer <- function(id) {
                 # )
                 # 
                 metric_table <- reactive({
-                  full_join(NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
+                  full_join(loc_df(),#NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
                             left_join(therm_analysis(data(), input$yr_type), data_gap_check(data()), by = "site_id"), 
                             by = c("site_no" = "site_id"))
                   # %>%

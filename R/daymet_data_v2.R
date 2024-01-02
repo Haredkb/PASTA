@@ -1,23 +1,17 @@
 ## Trials with Daymet 
 ## building off of https://github.com/bbuzzee/DaymetRShiny/blob/master/DaymetRShiny/app.R
-library(devtools)
-library(shiny)
-library(tidyverse)
-library(daymetr) #install_github("khufkens/daymetr")
-library(shinythemes)
-library(plotly)
-library(lubridate)
-library(devtools) 
+#library(daymetr) #install_github("khufkens/daymetr")
+#library(shinythemes)
 #data(zipcode)
 
 ################################################
 ### ###     PRISM Function           ###########
 ################################################
 #library(devtools) #needed to download prism from github
-library(reshape2) ##melting dataframes
-library(dplyr) #data wrangling
-library(raster) ##working with raster data
-library(sp) ##manipulationg spatial data
+# library(reshape2) ##melting dataframes
+# library(dplyr) #data wrangling
+# library(raster) ##working with raster data
+# library(sp) ##manipulationg spatial data
 
 #install_github(repo = "prism", username = "ropensci")
 #install.packages("prism")
@@ -56,7 +50,7 @@ output <- apply(locations, 1, function(location) {#by row
   lat <- as.numeric(location[2])
   lon <- as.numeric(location[3])
   start <- if_else(as.numeric(year(location[4]))> 1979, as.numeric(year(location[4])), 1980)
-  end <- if_else(as.numeric(year(location[5]))< 2022, as.numeric(year(location[5])), 2021)#needs to be updated every year
+  end <- if_else(as.numeric(year(location[5]))< 2023, as.numeric(year(location[5])), 2022)#needs to be updated every year
   #try(start <- as.numeric(year(start))) #as.numeric(format(location[4], "%Y"))) #default otherwise
   #try(end <-  as.numeric(year(end)))
   

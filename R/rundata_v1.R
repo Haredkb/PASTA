@@ -1,20 +1,19 @@
 ### USE NWIS AND DAYMET DATA 
-
-
 #could be useful https://stackoverflow.com/questions/35720660/how-to-use-an-r-script-from-github
 
-### load and install packages
-# install.packages("dataRetrieval")
-library(dataRetrieval)
-# install.packages("tidyverse")
-library(tidyverse)
-# # install.packages("ggplot2")
-# library(ggplot2)
-library(lubridate)
-#http://www.jumpingrivers.com/blog/personal-r-package/
-# path = file.path(tempdir(), "AnnualTSignals")
-# usethis::create_package(path)
-library(smwrBase) #for water year
+# ### load and install packages
+# # install.packages("dataRetrieval")
+# library(dataRetrieval)
+# # install.packages("tidyverse")
+# library(tidyverse)
+# # # install.packages("ggplot2")
+# # library(ggplot2)
+# library(lubridate)
+# #http://www.jumpingrivers.com/blog/personal-r-package/
+# # path = file.path(tempdir(), "AnnualTSignals")
+# # usethis::create_package(path)
+
+#library(smwrBase) #for water year- updated to tidyverse. 
 source("R/paired_annualT_signals.R")
 source("R/stream_thermal_sensitivity.R")
 #source("R/baseflow_regression.R")
@@ -29,7 +28,8 @@ add_waterYear <- function(df_tem){
       df_tem <- df_tem %>%
         dplyr::rename("site_id" =1, "date" = 2 , "tavg_wat_C"=3, "tavg_air_C" = 4)
       
-      df_tem$year_water <-waterYear(as.POSIXct(as.character(df_tem$date), format="%Y-%m-%d"))
+      df_tem$year_water <- ifelse(month(as.POSIXct(as.character(df_tem$date), format="%Y-%m-%d")) > 9, year(df_tem$date) + 1, year(df_tem$date))
+      #df_tem$year_water <-waterYear(as.POSIXct(as.character(df_tem$date), format="%Y-%m-%d"))
       
       return(df_tem)
 }

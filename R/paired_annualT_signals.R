@@ -1,7 +1,7 @@
 ## Annual Signal Functions
-library(lubridate)
-library(tidyverse)
-library(smwrBase)
+# library(lubridate)
+# library(tidyverse)
+# #library(smwrBase)
 ## ----------- Heed the Data Gaps -----------------##
 ## Assess the data inputs for missing data or incorrect data (values >100) ##
 ## Based on Johson 2021 analysis 
@@ -39,7 +39,7 @@ data_gap_check <- function(df){
 ## ----------- Calcuate radian date from date------ ##
 rad_day <- function(x, yr_type){ #input date vector
 
-  print(head(x))
+  #print(head(x))
   if(missing(yr_type)){
     yr_type <- "water" #use water year unless calendar is specified
   }
@@ -50,13 +50,13 @@ rad_day <- function(x, yr_type){ #input date vector
   
   } else { #use water year 
     
-  wtr_yr <- as.numeric(as.character(waterYear(as.POSIXct(x, format="%Y-%m-%d")))) #to convert factor to numeric must convert first to character
+  wtr_yr <- ifelse(month(as.POSIXct(as.character(x), format="%Y-%m-%d")) > 9, year(x) + 1, year(x)) #to convert factor to numeric must convert first to character
   d <- as.Date(x, format="%Y-%m-%d")
   d_df <- data.frame(wtr_yr, d)
                #https://stackoverflow.com/questions/48123049/create-day-index-based-on-water-year
   wtr_df <- d_df %>%
-                 group_by(wtr_yr) %>% 
-                 mutate(wtr_day = as.numeric(difftime(d, ymd(paste0(wtr_yr - 1 ,'-09-30')), units = "days")))
+                 dplyr::group_by(wtr_yr) %>% 
+                 dplyr::mutate(wtr_day = as.numeric(difftime(d, ymd(paste0(wtr_yr - 1 ,'-09-30')), units = "days")))
   
   d <- wtr_df$wtr_day
   }
@@ -86,6 +86,10 @@ rad_day <- function(x, yr_type){ #input date vector
 #TAS: Temperature Annual Signal
 #can be used for air temp and surface water temperature extraction of annual signal 
 fit_TAS <- function(date, temp, yr_type){
+  
+  if(missing(yr_type)){
+    yr_type <- "water" #use water year unless calendar is specified
+  }
   
   df <- as.data.frame(unlist(temp)) %>%
     cbind(., date) %>%#has to be done second to keep format (?)
@@ -157,7 +161,7 @@ TMy_output <- function(df, yr_type){
   } else {
       T.y <- add_waterYear(df)
       T.y$year_type <- yr_type
-      T.yl <- lapply(levels(T.y$year_water), function(x){
+      T.yl <- lapply(levels(as.factor(T.y$year_water)), function(x){
                     df.y <- T.y %>%
                       filter(year_water == x)#%>%
                     
@@ -170,9 +174,10 @@ TMy_output <- function(df, yr_type){
   }
   
   df <- do.call(rbind.data.frame, T.yl)%>% #
-    mutate(AmpRatio = ifelse(count <= 100, NA, AmpRatio), #if count less than 100 do not report values - but stil can report linear values
-           PhaseLag_d = ifelse(count <= 100, NA, PhaseLag_d),
-           Ratio_Mean = ifelse(count <= 100, NA, Ratio_Mean),
+    mutate(
+            AmpRatio = ifelse(count < 100, NA, AmpRatio), #if count less than 100 do not report values - but still can report linear values
+            PhaseLag_d = ifelse(count < 100, NA, PhaseLag_d),
+            Ratio_Mean = ifelse(count < 100, NA, Ratio_Mean)
            )
 }
 

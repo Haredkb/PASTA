@@ -42,7 +42,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                                           start = as.Date("2010-10-01"),
                                           end   = as.Date("2015-09-30"),
                                           min    = as.Date("1980-01-01"),
-                                          max    = as.Date("2021-12-30")),
+                                          max    = as.Date("2022-12-30")),
                            #useShinyalert(),
                            actionButton(
                              inputId = ns("searchsites"),
@@ -68,8 +68,8 @@ nwisUI <- function(id, label = "Automated NWIS") {
                                                     "Water Year" = "water"), 
                                         selected = "water"),
                            
-                           checkboxInput(ns("bfi"), "Download Flow Data, if available?", value = FALSE),# as.factor(parameter$parameter_nm)),
-
+                           #checkboxInput(ns("bfi"), "Download Flow Data, if available?", value = FALSE),# as.factor(parameter$parameter_nm)),
+                            p("BFI calculation Temporarily Unavailable"),
                            ##add action button so thermal parameter run only happens after user is ready
                            actionButton(inputId = ns("gobutton"),label = "Calculate Thermal Metrics",
                                         style="padding:20px; font-size: 22px; color: #fff; background-color: #FF0000; border-color: #2e6da4"),
@@ -102,7 +102,7 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          downloadButton(ns("download_fitdata"), "Download Annual Signal Fit Data"),
                          
                          br(),
-                         
+                         h3("Scroll down for results"),
                          column(6,
                          h6("Grey Columns are assoicated with paired air and stream annual signals calculations"),
                          p("Amp_Ratio is Amplitude Ratio, unitless"),

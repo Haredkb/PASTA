@@ -1,7 +1,7 @@
 ### Thermal Sensitivity Functions
-### based off of kellher et al. 2012
-library(dplyr)
-library(lubridate)
+# ### based off of kellher et al. 2012
+# library(dplyr)
+# library(lubridate)
 
 
 fit_ThermalSens <- function(date, a_temp, w_temp, y){

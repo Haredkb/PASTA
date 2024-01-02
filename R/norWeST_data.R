@@ -1,8 +1,8 @@
 # #Temperature Norwest Data
-library(readxl)
-library(tidyverse)
-library(foreign) #for reading dbf
-library(plyr) #rbind.fill
+# library(readxl)
+# library(tidyverse)
+# library(foreign) #for reading dbf
+# library(plyr) #rbind.fill
 
 
 #PU <- c("eastern-montana", "SnakeBear")
