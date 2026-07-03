@@ -108,3 +108,85 @@
  }
  
  #################
+
+# Estimate daily baseflow and BFI from discharge using a Lyne-Hollick filter.
+calc_baseflow_daily <- function(df_flow, alpha = 0.925, passes = 3) {
+  if (!all(c("site_id", "date", "flow") %in% names(df_flow))) {
+    return(data.frame())
+  }
+
+  qf_pass <- function(q, alpha_val) {
+    n <- length(q)
+    qf <- rep(0, n)
+    if (n < 2) {
+      return(qf)
+    }
+
+    for (i in 2:n) {
+      qf[i] <- alpha_val * qf[i - 1] + ((1 + alpha_val) / 2) * (q[i] - q[i - 1])
+      qf[i] <- max(0, min(qf[i], q[i]))
+    }
+    qf
+  }
+
+  lyne_hollick <- function(q, alpha_val, n_passes) {
+    q <- as.numeric(q)
+    q[is.na(q) | q < 0] <- NA
+    if (sum(!is.na(q)) < 3) {
+      return(rep(NA_real_, length(q)))
+    }
+
+    q_filled <- q
+    na_idx <- which(is.na(q_filled))
+    if (length(na_idx) > 0) {
+      q_filled <- stats::approx(x = which(!is.na(q_filled)),
+                                y = q_filled[!is.na(q_filled)],
+                                xout = seq_along(q_filled),
+                                method = "linear",
+                                rule = 2)$y
+    }
+
+    qf <- rep(0, length(q_filled))
+    for (k in seq_len(max(1, n_passes))) {
+      if (k %% 2 == 1) {
+        qf <- qf_pass(q_filled, alpha_val)
+      } else {
+        qf <- rev(qf_pass(rev(q_filled), alpha_val))
+      }
+      q_filled <- pmax(0, q_filled - qf)
+    }
+
+    b <- pmax(0, q - qf)
+    b[is.na(q)] <- NA_real_
+    b
+  }
+
+  df_out <- df_flow %>%
+    dplyr::mutate(date = as.Date(date)) %>%
+    dplyr::arrange(site_id, date) %>%
+    dplyr::group_by(site_id) %>%
+    dplyr::group_modify(~{
+      x <- .x %>% dplyr::arrange(date)
+      bf <- lyne_hollick(x$flow, alpha, passes)
+      x$baseflow <- bf
+      x$bfi_daily <- ifelse(is.na(x$flow) | x$flow <= 0, NA_real_, x$baseflow / x$flow)
+      x
+    }) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(site_id, date, baseflow, bfi_daily)
+
+  df_out
+}
+
+calc_bfi_summary <- function(df_flow_with_baseflow) {
+  if (!all(c("site_id", "flow", "baseflow") %in% names(df_flow_with_baseflow))) {
+    return(data.frame())
+  }
+
+  df_flow_with_baseflow %>%
+    dplyr::group_by(site_id) %>%
+    dplyr::summarise(
+      BFI = round(sum(baseflow, na.rm = TRUE) / sum(flow[flow > 0], na.rm = TRUE), 3),
+      .groups = "drop"
+    )
+}

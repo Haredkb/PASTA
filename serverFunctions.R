@@ -350,6 +350,210 @@
 #   )#end module server
 # }#end enCanServer
 
+envCanServer <- function(id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+
+      stations_df <- reactive({
+        getEnvCanStations()
+      })
+
+      selected_station_table <- eventReactive(input$getData, {
+        req(stations_df())
+
+        if (isTRUE(input$mapextent)) {
+          bounds <- input$dataavailmap_bounds
+          req(bounds)
+          bbox_in <- c(round(bounds$west, 2), round(bounds$south, 2), round(bounds$east, 2), round(bounds$north, 2))
+          output$AOI <- renderText({ bbox_in })
+
+          stations_df() %>%
+            dplyr::filter(dplyr::between(LATITUDE, bbox_in[2], bbox_in[4])) %>%
+            dplyr::filter(dplyr::between(LONGITUDE, bbox_in[1], bbox_in[3]))
+        } else {
+          req(input$station)
+          stations_df() %>%
+            dplyr::filter(STATION_NO %in% input$station)
+        }
+      })
+
+      output$site_table <- renderDataTable({
+        req(selected_station_table())
+        selected_station_table() %>%
+          dplyr::transmute(site_id = STATION_NO,
+                           station_name = STATION_NAME,
+                           latitude = LATITUDE,
+                           longitude = LONGITUDE)
+      })
+
+      points_explore <- reactive({
+        req(stations_df())
+        stations_df() %>%
+          dplyr::select(LATITUDE, LONGITUDE, STATION_NO, STATION_NAME) %>%
+          dplyr::rename(lat = LATITUDE, lng = LONGITUDE)
+      })
+
+      output$dataavailmap <- renderLeaflet({
+        lat_min <- min(points_explore()$lat, na.rm = TRUE)
+        lat_max <- max(points_explore()$lat, na.rm = TRUE)
+        lng_min <- min(points_explore()$lng, na.rm = TRUE)
+        lng_max <- max(points_explore()$lng, na.rm = TRUE)
+
+        leaflet(options = leafletOptions(zoomSnap = 0.25, zoomDelta = 0.25)) %>%
+          addTiles() %>%
+          addCircleMarkers(data = points_explore(),
+                           label = paste(points_explore()$STATION_NO, "//", points_explore()$STATION_NAME)) %>%
+          fitBounds(lat1 = lat_min, lat2 = lat_max, lng1 = lng_min, lng2 = lng_max)
+      })
+
+      observeEvent(input$getData, {
+        req(selected_station_table())
+        leafletProxy("dataavailmap") %>%
+          clearMarkers() %>%
+          addCircleMarkers(data = selected_station_table(),
+                           lng = ~LONGITUDE,
+                           lat = ~LATITUDE,
+                           label = ~paste(STATION_NO, "//", STATION_NAME))
+      })
+
+      observeEvent(input$site_table_rows_selected, {
+        req(selected_station_table())
+        row_selected <- selected_station_table()[input$site_table_rows_selected, ]
+        if (nrow(row_selected) < 1) {
+          return(NULL)
+        }
+        leafletProxy("dataavailmap") %>%
+          addCircleMarkers(data = row_selected,
+                           lng = ~LONGITUDE,
+                           lat = ~LATITUDE,
+                           color = "red",
+                           label = ~STATION_NO)
+      })
+
+      Tem_df <- eventReactive(input$gobutton, {
+        req(selected_station_table())
+
+        s <- input$site_table_rows_selected
+        if (length(s) > 0) {
+          selected_sites <- selected_station_table()[s, ]$STATION_NO
+        } else {
+          selected_sites <- unique(selected_station_table()$STATION_NO)
+        }
+
+        df_w <- getEnvCanData(selected_sites)
+
+        loc_df <- selected_station_table() %>%
+          dplyr::filter(STATION_NO %in% selected_sites) %>%
+          dplyr::distinct(STATION_NO, .keep_all = TRUE) %>%
+          dplyr::transmute(site_id = STATION_NO,
+                           lat = LATITUDE,
+                           long = LONGITUDE,
+                           start = min(df_w$date, na.rm = TRUE),
+                           end = max(df_w$date, na.rm = TRUE))
+
+        aTem <- batch_daymet(loc_df)
+        aTem <- clean_daymet(aTem) %>%
+          dplyr::select(site_id, date, tavg_air_C)
+
+        dplyr::left_join(df_w, aTem, by = c("site_id", "date")) %>%
+          na.omit() %>%
+          dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60) %>%
+          dplyr::select(site_id, date, tavg_wat_C, tavg_air_C)
+      })
+
+      observeEvent(input$gobutton, {
+        updateTabsetPanel(session, "envC_calc", selected = NS(id, "results_tbl"))
+      })
+
+      output$download_rawdata <- downloadHandler(
+        filename = function() {
+          paste("RawData_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(Tem_df(), file, row.names = FALSE)
+        }
+      )
+
+      TM_data <- eventReactive(input$gobutton, {
+        TMy_output(Tem_df(), input$yr_type)
+      })
+
+      output$metric_table <- DT::renderDT({
+        datatable(TM_data()) %>%
+          formatStyle(c("AmpRatio", "PhaseLag_d", "Ratio_Mean"),
+                      backgroundColor = styleInterval(40, c("lightgray", "red"))) %>%
+          formatStyle(c("TS__Slope", "AdjRsqr", "YInt"),
+                      backgroundColor = "lightblue") %>%
+          formatStyle(c("max_conseq_missing_days"),
+                      backgroundColor = styleInterval(49, c("white", "orange")))
+      })
+
+      output$downloadData <- downloadHandler(
+        filename = function() {
+          paste("ThermalMetrics_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(TM_data(), file, row.names = FALSE)
+        }
+      )
+
+      p_df <- reactive({
+        create_TMplot_df(Tem_df(), input$yr_type)
+      })
+
+      output$downloadSinData <- downloadHandler(
+        filename = function() {
+          paste("DataFit_envCan.csv")
+        },
+        content = function(file) {
+          write.csv(p_df(), file, row.names = FALSE)
+        }
+      )
+
+      output$plot_tempdata <- renderPlotly({
+        rows <- length(unique(Tem_df()$site_id)) * 300
+        ggplotly(p_dataTS(p_df()), height = rows) %>%
+          plotly::layout(legend = list(x = 0,
+                                       xanchor = "left",
+                                       yanchor = "top",
+                                       orientation = "h"))
+      })
+
+      output$plot_TS <- renderPlotly({
+        rows <- length(unique(p_df()$site_id)) * 300
+        ggplotly(plot_TMlm(p_df()), height = rows) %>%
+          plotly::layout(legend = list(x = 0,
+                                       xanchor = "left",
+                                       yanchor = "top",
+                                       orientation = "h"))
+      })
+
+      output$plot_TAS <- renderPlotly({
+        ggplotly(plot_TMas(TM_data()), height = 600) %>%
+          plotly::layout(legend = list(x = 0,
+                                       xanchor = "left",
+                                       yanchor = "top",
+                                       orientation = "h"))
+      })
+
+      metric_points <- reactive({
+        req(selected_station_table())
+        selected_station_table() %>%
+          dplyr::transmute(lat = LATITUDE,
+                           lng = LONGITUDE,
+                           site_id = STATION_NO)
+      })
+
+      output$metricmap <- renderLeaflet({
+        leaflet() %>%
+          addTiles() %>%
+          addCircleMarkers(data = metric_points(), label = metric_points()$site_id)
+      })
+    }
+  )
+}
+
 ###########################################################################
 ###########################################################################
 ###                                                                     ###
@@ -537,17 +741,21 @@ nwisServer <- function(id) {
                                             format(input$date.range[2]))#end date)
                     #list [1] is stream temperature data, and [2] is location information
                     
-                    # REMOVED DUE TO DVSTATS PACKAGE TRANSITION TO GITLAB - 12/5/2023
-                    # #download discharge if requested
-                    # if(input$bfi ==TRUE){
-                    #   nwis_Q <- readNWIS_Q(site_table_s, #input$siteNo,#for use of dropdown 
-                    #                        # format(start.date), #input$date.range[1]), #start date
-                    #                        # format(end.date))
-                    #                        format(input$date.range[1]), #start date
-                    #                        format(input$date.range[2]))
-                    #   #replace dataframe 1 with QT
-                    #   nwis_l[[1]] <- dplyr::left_join(nwis_l[[1]], nwis_Q[[1]], by = c("site_id", "date"))
-                    #   }
+                    # Download discharge and estimate baseflow/BFI when requested.
+                    if (isTRUE(input$bfi)) {
+                      nwis_Q <- readNWIS_Q(site_table_s,
+                                           format(input$date.range[1]),
+                                           format(input$date.range[2]))
+
+                      if (is.list(nwis_Q) && length(nwis_Q) > 0) {
+                        q_df <- as.data.frame(nwis_Q[[1]])
+                        if (nrow(q_df) > 0 && all(c("site_id", "date", "flow") %in% names(q_df))) {
+                          bf_daily <- calc_baseflow_daily(q_df)
+                          q_df <- dplyr::left_join(q_df, bf_daily, by = c("site_id", "date"))
+                          nwis_l[[1]] <- dplyr::left_join(nwis_l[[1]], q_df, by = c("site_id", "date"))
+                        }
+                      }
+                    }
                     
                     if (is.list(nwis_l) == FALSE) {
                       output$datafail <- renderText({
@@ -588,28 +796,27 @@ nwisServer <- function(id) {
                     
                   
                     #join air ad stream temp in a table to have attributed needed for therm_analysis
-                    df <- dplyr::left_join(df, aTem, by = c("site_id", "date"))%>%
-                      drop_na(-one_of("flow")) %>% #drop rows with any na expect for columns with flow
+                    df <- dplyr::left_join(df, aTem, by = c("site_id", "date")) %>%
                       dplyr::filter(tavg_air_C < 120 | tavg_wat_C < 60)
-                    
+
+                    # Keep only paired air-water records for thermal metrics.
+                    df <- df %>%
+                      tidyr::drop_na(tavg_wat_C, tavg_air_C)
+
                     if("flow" %in% colnames(df)){
                       df <-  df %>%
-                      dplyr::relocate(flow, .after = last_col())}#move flow to the end so therm_analysis works 
-                    
-                    # REMOVED 12-12-2023 for review
-                    ##add daily BFI
-                    # if(input$bfi ==TRUE){
-                    #   bfi_df <- lapply(unique(df$site_id), function(id){
-                    #     bf_a <- df %>%
-                    #       dplyr::filter(site_id == id)
-                    #     
-                    #     output <- baseflow_calc(bf_a$date, bf_a$flow, id)
-                    # 
-                    #     })%>%
-                    #     do.call("rbind",.)
-                    #   
-                    #   try(df <- left_join(df, bfi_df))
-                    # }
+                        dplyr::relocate(flow, .after = last_col())
+                    }
+
+                    if("baseflow" %in% colnames(df)){
+                      df <- df %>%
+                        dplyr::relocate(baseflow, .after = flow)
+                    }
+
+                    if("bfi_daily" %in% colnames(df)){
+                      df <- df %>%
+                        dplyr::relocate(bfi_daily, .after = baseflow)
+                    }
                     
                     return(df)
                   })
@@ -621,27 +828,23 @@ nwisServer <- function(id) {
                     return(df)
                   })
                 
-                # # not consistently working
-                # bfi_df <- reactive({
-                #   if(input$bfi ==TRUE){
-                #     out <- data() %>%
-                #     group_by(site_id)%>%
-                #     dplyr::summarise(
-                #       BFI = round(mean(bfi_daily, na.rm = TRUE),2)
-                #     )}else(#otherwise just a list of site_id for joining
-                #     out <- data.frame(site_id = unique(data()$site_id))
-                #           )
-                #   
-                #   return(out)
-                # }
-                # )
-                # 
+                bfi_df <- reactive({
+                  if (!isTRUE(input$bfi)) {
+                    return(data.frame(site_id = unique(as.character(data()$site_id)), BFI = NA_real_))
+                  }
+
+                  if (!all(c("flow", "baseflow") %in% names(data()))) {
+                    return(data.frame(site_id = unique(as.character(data()$site_id)), BFI = NA_real_))
+                  }
+
+                  calc_bfi_summary(data())
+                })
+
                 metric_table <- reactive({
                   full_join(loc_df(),#NWIS_sites()[input$site_table_rows_selected,c(2,3,5,6)], 
                             left_join(therm_analysis(data(), input$yr_type), data_gap_check(data()), by = "site_id"), 
-                            by = c("site_no" = "site_id"))
-                  # %>%
-                  #   left_join(., bfi_df(), by = c("site_no" = "site_id"))
+                            by = c("site_no" = "site_id")) %>%
+                    left_join(bfi_df(), by = c("site_no" = "site_id"))
                 })
                 # Create output table 
                 output$metric_table <- DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
@@ -751,6 +954,19 @@ nwisServer <- function(id) {
                                              xanchor='left',
                                              yanchor='top',
                                              orientation='h'))
+                })
+
+                output$plot_BFI_AR <- renderPlotly({
+                  req(metric_table())
+                  p <- metric_table() %>%
+                    dplyr::filter(!is.na(BFI), !is.na(AmpRatio)) %>%
+                    ggplot(aes(x = BFI, y = AmpRatio, label = site_no)) +
+                    geom_point(color = "#1f78b4", size = 2) +
+                    geom_smooth(method = "lm", se = FALSE, color = "#e31a1c") +
+                    labs(x = "Baseflow Index (BFI)", y = "Amplitude Ratio") +
+                    theme_bw()
+
+                  ggplotly(p, height = 450, tooltip = c("label", "x", "y"))
                 })
                 
                 

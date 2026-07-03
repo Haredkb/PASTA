@@ -48,7 +48,8 @@ ui <- fluidPage(
             column(6,
                    shiny::HTML("<br><br><center> <h1>Analysis Information and Overview</h1> </center><br>"),
                    shiny::HTML("<h4>Utilize the tabs on the top to select the source of stream temperature data: current options are (1) NWIS, 
-                                (2) <a href='https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/StreamTemperatureDataSummaries.shtml'> NorWeST </a>(Chandler et al. 2016), 
+                                (2) Environment Canada, 
+                                (3) <a href='https://www.fs.usda.gov/rm/boise/AWAE/projects/NorWeST/StreamTemperatureDataSummaries.shtml'> NorWeST </a>(Chandler et al. 2016), 
                                 and user uploads from direct upload or <a href= 'https://www.hydroshare.org/'> HydroShare </a> resources.
                                The analyses conducted use the correlation between air and stream temperature 
                                to support interferences about hydrologic processes. Two analyses are performed: 
@@ -147,10 +148,10 @@ ui <- fluidPage(
              
         
         ##------envCan----------#####
-            # tabPanel("Environment Canada Data",
-            #       envCanUI("envCanModule")
-            #     ),
-            # 
+            tabPanel("Environment Canada Data",
+                  envCanUI("envCanModule")
+                ),
+            
         ##------NorWeST---------#####
         tabPanel("NorWeST Stream Data",
                  norwestUI("norwestModule")
@@ -367,7 +368,7 @@ server <- function(input, output, session) {
   ####
   ####
   #External Server
-  #envCanServer("envCanModule")
+  envCanServer("envCanModule")
   nwisServer("nwisModule")
   norwestServer("norwestModule")
   
