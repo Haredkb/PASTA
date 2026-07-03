@@ -848,11 +848,17 @@ nwisServer <- function(id) {
                 })
                 # Create output table 
                 output$metric_table <- DT::renderDT({ #include site_no, name, lat and long (2,3,5,6)
-                      datatable(metric_table()) %>% 
+                      datatable(metric_table(),
+                                caption = htmltools::tags$caption(
+                                  style = 'caption-side: top; text-align: left;',
+                                  'BFI is calculated as total baseflow divided by total discharge over the selected period.')) %>%
                         formatStyle(c('AmpRatio', "PhaseLag_d", "Ratio_Mean"),
                                     backgroundColor = styleInterval(40, c('lightgray', 'red'))) %>% #above 40 indicates dam influenced 
                         formatStyle(c('TS__Slope', "AdjRsqr", "YInt"),
                                     backgroundColor = 'lightblue') %>%
+                        formatStyle(c("BFI"),
+                                    backgroundColor = styleInterval(c(0.3, 0.7), c('mistyrose', 'khaki1', 'honeydew')),
+                                    fontWeight = 'bold') %>%
                         formatStyle(c("max_conseq_missing_days"),
                                     backgroundColor = styleInterval(49, c('white', 'orange')))})
                   

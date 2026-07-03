@@ -112,7 +112,8 @@ nwisUI <- function(id, label = "Automated NWIS") {
                          h6("Blue columns are associated with air and stream temperature linear regression"),
                          p("TS__Slope, is the slope of the linear relationship between air and water temperature"),
                          p("AdjRsqr, is the r2 of the linear fit"),
-                         p("YInt, is the y intercept of the linear relationship")
+                         p("YInt, is the y intercept of the linear relationship"),
+                         p("BFI is the Baseflow Index estimated from discharge; values near 1 indicate more baseflow-dominated flow")
                          ),
                          h5("Please review the literature citations from the information tab to explore how to interpret these data"),
                          img(src='InterpretationTable.jpeg', align = "right"),
