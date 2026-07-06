@@ -153,7 +153,6 @@ therm_analysis <- function(df_tem, yr_type){
 # #Temperature Norwest Data
 library(readxl)
 library(tidyverse)
-library(foreign) #for reading dbf
 library(plyr) #rbind.fill
 
 
