@@ -55,7 +55,20 @@ suppressPackageStartupMessages({
   require("httr")
   require("stringr")
   require("sf")
-  envCan_stations <- read.csv("https://data-donnees.ec.gc.ca/data/substances/monitor/automated-fresh-water-quality-monitoring-and-surveillance-data/auto-water-qual-eau-stations.csv")
+  envCan_station_urls <- c(
+    "https://data-donnees.az.ec.gc.ca/data/substances/monitor/automated-fresh-water-quality-monitoring-and-surveillance-data/auto-water-qual-eau-stations.csv",
+    "https://data-donnees.ec.gc.ca/data/substances/monitor/automated-fresh-water-quality-monitoring-and-surveillance-data/auto-water-qual-eau-stations.csv"
+  )
+  envCan_stations <- NULL
+  for (u in envCan_station_urls) {
+    envCan_stations <- tryCatch(utils::read.csv(u, stringsAsFactors = FALSE), error = function(e) NULL)
+    if (!is.null(envCan_stations) && "STATION_NO" %in% names(envCan_stations)) {
+      break
+    }
+  }
+  if (is.null(envCan_stations) || !"STATION_NO" %in% names(envCan_stations)) {
+    envCan_stations <- data.frame(STATION_NO = character(), stringsAsFactors = FALSE)
+  }
   source("R/nwis_data_v2.R")
   source("R/daymet_data_v2.R")
   source("R/rundata_v1.R")

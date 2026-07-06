@@ -40,9 +40,9 @@ nwisUI <- function(id, label = "Automated NWIS") {
                            
                            dateRangeInput(ns("date.range"), "Analysis Years",
                                           start = as.Date("2010-10-01"),
-                                          end   = as.Date("2015-09-30"),
+                                          end   = Sys.Date(),
                                           min    = as.Date("1980-01-01"),
-                                          max    = as.Date("2022-12-30")),
+                                          max    = Sys.Date()),
                            #useShinyalert(),
                            actionButton(
                              inputId = ns("searchsites"),

@@ -356,21 +356,58 @@ envCanServer <- function(id) {
     function(input, output, session) {
 
       stations_df <- reactive({
-        getEnvCanStations()
+        st <- getEnvCanStations()
+        if (is.null(st) || nrow(st) < 1) {
+          return(data.frame())
+        }
+
+        names(st) <- toupper(names(st))
+        if (!"STATION_NO" %in% names(st)) {
+          st$STATION_NO <- sub("[-_].*$", "", st$DATA_NAME)
+        }
+        if (!"STATION_NAME" %in% names(st)) {
+          st$STATION_NAME <- st$STATION_NO
+        }
+        if (!"LATITUDE" %in% names(st)) {
+          st$LATITUDE <- NA_real_
+        }
+        if (!"LONGITUDE" %in% names(st)) {
+          st$LONGITUDE <- NA_real_
+        }
+
+        dplyr::mutate(
+          st,
+          LATITUDE = suppressWarnings(as.numeric(LATITUDE)),
+          LONGITUDE = suppressWarnings(as.numeric(LONGITUDE)),
+          STATION_NO = as.character(STATION_NO),
+          STATION_NAME = as.character(STATION_NAME)
+        )
+      })
+
+      observe({
+        req(stations_df())
+        choices <- sort(unique(stats::na.omit(as.character(stations_df()$STATION_NO))))
+        updateSelectInput(session, "station", choices = choices)
       })
 
       selected_station_table <- eventReactive(input$getData, {
         req(stations_df())
+        validate(need(nrow(stations_df()) > 0, "No Environment Canada stations could be loaded right now. Please try again later."))
 
         if (isTRUE(input$mapextent)) {
           bounds <- input$dataavailmap_bounds
-          req(bounds)
-          bbox_in <- c(round(bounds$west, 2), round(bounds$south, 2), round(bounds$east, 2), round(bounds$north, 2))
-          output$AOI <- renderText({ bbox_in })
+          if (!all(c("LATITUDE", "LONGITUDE") %in% names(stations_df())) || all(is.na(stations_df()$LATITUDE)) || all(is.na(stations_df()$LONGITUDE))) {
+            showNotification("Station coordinates are currently unavailable; map-extent filtering is disabled.", type = "warning")
+            stations_df()
+          } else {
+            req(bounds)
+            bbox_in <- c(round(bounds$west, 2), round(bounds$south, 2), round(bounds$east, 2), round(bounds$north, 2))
+            output$AOI <- renderText({ bbox_in })
 
-          stations_df() %>%
-            dplyr::filter(dplyr::between(LATITUDE, bbox_in[2], bbox_in[4])) %>%
-            dplyr::filter(dplyr::between(LONGITUDE, bbox_in[1], bbox_in[3]))
+            stations_df() %>%
+              dplyr::filter(dplyr::between(LATITUDE, bbox_in[2], bbox_in[4])) %>%
+              dplyr::filter(dplyr::between(LONGITUDE, bbox_in[1], bbox_in[3]))
+          }
         } else {
           req(input$station)
           stations_df() %>%
@@ -389,29 +426,44 @@ envCanServer <- function(id) {
 
       points_explore <- reactive({
         req(stations_df())
-        stations_df() %>%
+        st <- stations_df()
+        required_cols <- c("LATITUDE", "LONGITUDE", "STATION_NO", "STATION_NAME")
+        if (!all(required_cols %in% names(st))) {
+          return(data.frame(lat = numeric(), lng = numeric(), STATION_NO = character(), STATION_NAME = character()))
+        }
+
+        st %>%
           dplyr::select(LATITUDE, LONGITUDE, STATION_NO, STATION_NAME) %>%
-          dplyr::rename(lat = LATITUDE, lng = LONGITUDE)
+          dplyr::rename(lat = LATITUDE, lng = LONGITUDE) %>%
+          dplyr::filter(!is.na(lat), !is.na(lng))
       })
 
       output$dataavailmap <- renderLeaflet({
-        lat_min <- min(points_explore()$lat, na.rm = TRUE)
-        lat_max <- max(points_explore()$lat, na.rm = TRUE)
-        lng_min <- min(points_explore()$lng, na.rm = TRUE)
-        lng_max <- max(points_explore()$lng, na.rm = TRUE)
+        p <- points_explore()
+        m <- leaflet(options = leafletOptions(zoomSnap = 0.25, zoomDelta = 0.25)) %>%
+          addProviderTiles(providers$CartoDB.Positron)
 
-        leaflet(options = leafletOptions(zoomSnap = 0.25, zoomDelta = 0.25)) %>%
-          addTiles() %>%
-          addCircleMarkers(data = points_explore(),
-                           label = paste(points_explore()$STATION_NO, "//", points_explore()$STATION_NAME)) %>%
-          fitBounds(lat1 = lat_min, lat2 = lat_max, lng1 = lng_min, lng2 = lng_max)
+        if (nrow(p) > 0) {
+          lat_min <- min(p$lat, na.rm = TRUE)
+          lat_max <- max(p$lat, na.rm = TRUE)
+          lng_min <- min(p$lng, na.rm = TRUE)
+          lng_max <- max(p$lng, na.rm = TRUE)
+
+          m %>%
+            addCircleMarkers(data = p,
+                             label = paste(p$STATION_NO, "//", p$STATION_NAME)) %>%
+            fitBounds(lat1 = lat_min, lat2 = lat_max, lng1 = lng_min, lng2 = lng_max)
+        } else {
+          m %>% setView(lng = -96, lat = 56, zoom = 3)
+        }
       })
 
       observeEvent(input$getData, {
         req(selected_station_table())
-        leafletProxy("dataavailmap") %>%
+        req(all(c("LONGITUDE", "LATITUDE") %in% names(selected_station_table())))
+        leafletProxy("dataavailmap", session = session) %>%
           clearMarkers() %>%
-          addCircleMarkers(data = selected_station_table(),
+          addCircleMarkers(data = dplyr::filter(selected_station_table(), !is.na(LONGITUDE), !is.na(LATITUDE)),
                            lng = ~LONGITUDE,
                            lat = ~LATITUDE,
                            label = ~paste(STATION_NO, "//", STATION_NAME))
@@ -423,7 +475,11 @@ envCanServer <- function(id) {
         if (nrow(row_selected) < 1) {
           return(NULL)
         }
-        leafletProxy("dataavailmap") %>%
+        row_selected <- dplyr::filter(row_selected, !is.na(LONGITUDE), !is.na(LATITUDE))
+        if (nrow(row_selected) < 1) {
+          return(NULL)
+        }
+        leafletProxy("dataavailmap", session = session) %>%
           addCircleMarkers(data = row_selected,
                            lng = ~LONGITUDE,
                            lat = ~LATITUDE,
@@ -442,17 +498,24 @@ envCanServer <- function(id) {
         }
 
         df_w <- getEnvCanData(selected_sites)
+        validate(need(nrow(df_w) > 0, "No Environment Canada temperature data returned for the selected station(s)/period."))
+
+        validate(need(all(c("LATITUDE", "LONGITUDE") %in% names(selected_station_table())),
+                      "Station coordinates are unavailable; unable to retrieve Daymet air temperature for these stations right now."))
 
         loc_df <- selected_station_table() %>%
           dplyr::filter(STATION_NO %in% selected_sites) %>%
+          dplyr::filter(!is.na(LATITUDE), !is.na(LONGITUDE)) %>%
           dplyr::distinct(STATION_NO, .keep_all = TRUE) %>%
           dplyr::transmute(site_id = STATION_NO,
                            lat = LATITUDE,
                            long = LONGITUDE,
                            start = min(df_w$date, na.rm = TRUE),
                            end = max(df_w$date, na.rm = TRUE))
+        validate(need(nrow(loc_df) > 0, "No valid station coordinates were available for Daymet pairing."))
 
         aTem <- batch_daymet(loc_df)
+        validate(need(nrow(aTem) > 0, "No Daymet air temperature data returned for the selected period."))
         aTem <- clean_daymet(aTem) %>%
           dplyr::select(site_id, date, tavg_air_C)
 
@@ -540,6 +603,7 @@ envCanServer <- function(id) {
       metric_points <- reactive({
         req(selected_station_table())
         selected_station_table() %>%
+          dplyr::filter(!is.na(LATITUDE), !is.na(LONGITUDE)) %>%
           dplyr::transmute(lat = LATITUDE,
                            lng = LONGITUDE,
                            site_id = STATION_NO)
@@ -547,7 +611,7 @@ envCanServer <- function(id) {
 
       output$metricmap <- renderLeaflet({
         leaflet() %>%
-          addTiles() %>%
+          addProviderTiles(providers$CartoDB.Positron) %>%
           addCircleMarkers(data = metric_points(), label = metric_points()$site_id)
       })
     }

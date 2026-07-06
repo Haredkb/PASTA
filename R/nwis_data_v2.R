@@ -17,14 +17,14 @@
           df_stream <- tryCatch( ##need to put in if statment so only runs if temp is available and Q runs if is there but not required. 
             {
               
-            df <- readNWISdv(siteNumbers = siteNo,
-                                    parameterCd = pCode,
-                                    startDate = start.date,
-                                    endDate = end.date)%>%
+                 df <- readNWISdv(siteNumbers = siteNo,
+                     parameterCd = pCode,
+                     startDate = start.date,
+                     endDate = end.date)%>%
               dplyr::select(-contains("cd"))%>%
-              dplyr::rename(tavg_wat_C = "X_00010_00003",
-                     "site_id" = "site_no",
-                     "date" = "Date")%>%
+              dplyr::rename(tavg_wat_C = tidyselect::any_of(c("X_00010_00003", "X_00010_00001", "X_00010_00008")),
+                "site_id" = "site_no",
+                "date" = "Date")%>%
               filter(tavg_wat_C > 1)%>%
                 dplyr::select(site_id, date, tavg_wat_C)
             
@@ -77,7 +77,7 @@
                         startDate = start.date,
                         endDate = end.date)%>%
          dplyr::select(-contains("cd"))%>%
-         dplyr::rename(flow = "X_00060_00003",
+         dplyr::rename(flow = tidyselect::any_of(c("X_00060_00003", "X_00060_00001", "X_00060_00008")),
                        "site_id" = "site_no",
                        "date" = "Date")%>%
          dplyr::select(site_id, date, flow)
@@ -146,17 +146,19 @@ calc_baseflow_daily <- function(df_flow, alpha = 0.925, passes = 3) {
                                 rule = 2)$y
     }
 
-    qf <- rep(0, length(q_filled))
+    q_base <- q_filled
     for (k in seq_len(max(1, n_passes))) {
       if (k %% 2 == 1) {
-        qf <- qf_pass(q_filled, alpha_val)
+        qf <- qf_pass(q_base, alpha_val)
       } else {
-        qf <- rev(qf_pass(rev(q_filled), alpha_val))
+        qf <- rev(qf_pass(rev(q_base), alpha_val))
       }
-      q_filled <- pmax(0, q_filled - qf)
+      q_base <- pmax(0, q_base - qf)
     }
 
-    b <- pmax(0, q - qf)
+    b <- pmax(0, q_filled - qf)
+    b <- pmin(b, q_filled)
+    b <- pmin(b, q)
     b[is.na(q)] <- NA_real_
     b
   }
@@ -168,8 +170,8 @@ calc_baseflow_daily <- function(df_flow, alpha = 0.925, passes = 3) {
     dplyr::group_modify(~{
       x <- .x %>% dplyr::arrange(date)
       bf <- lyne_hollick(x$flow, alpha, passes)
-      x$baseflow <- bf
-      x$bfi_daily <- ifelse(is.na(x$flow) | x$flow <= 0, NA_real_, x$baseflow / x$flow)
+      x$baseflow <- pmax(0, pmin(bf, x$flow))
+      x$bfi_daily <- ifelse(is.na(x$flow) | x$flow <= 0, NA_real_, pmin(1, x$baseflow / x$flow))
       x
     }) %>%
     dplyr::ungroup() %>%
@@ -184,9 +186,16 @@ calc_bfi_summary <- function(df_flow_with_baseflow) {
   }
 
   df_flow_with_baseflow %>%
+    dplyr::mutate(
+      flow = as.numeric(flow),
+      baseflow = pmax(0, pmin(as.numeric(baseflow), as.numeric(flow)))
+    ) %>%
     dplyr::group_by(site_id) %>%
     dplyr::summarise(
-      BFI = round(sum(baseflow, na.rm = TRUE) / sum(flow[flow > 0], na.rm = TRUE), 3),
+      BFI = {
+        den <- sum(flow[flow > 0], na.rm = TRUE)
+        if (is.na(den) || den <= 0) NA_real_ else round(pmin(1, sum(baseflow, na.rm = TRUE) / den), 3)
+      },
       .groups = "drop"
     )
 }

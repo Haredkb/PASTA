@@ -44,13 +44,22 @@ batch_daymet <- function(
   path = tempdir(),
   simplify = TRUE #when is best as list versus df? I would assume df but this can be "simply" changed. TRUE is df FALSE is list
 ){
+
+latest_complete_daymet_year <- function() {
+  # Daymet publication lags behind current year; use previous year as safe upper bound.
+  as.numeric(format(Sys.Date(), "%Y")) - 1
+}
   
 output <- apply(locations, 1, function(location) {#by row
   site <- location[1]
   lat <- as.numeric(location[2])
   lon <- as.numeric(location[3])
-  start <- if_else(as.numeric(year(location[4]))> 1979, as.numeric(year(location[4])), 1980)
-  end <- if_else(as.numeric(year(location[5]))< 2023, as.numeric(year(location[5])), 2022)#needs to be updated every year
+  start <- if_else(as.numeric(year(location[4])) > 1979, as.numeric(year(location[4])), 1980)
+  end_max <- latest_complete_daymet_year()
+  end <- if_else(as.numeric(year(location[5])) <= end_max, as.numeric(year(location[5])), end_max)
+  if (is.na(start) || is.na(end) || end < start) {
+    return(NULL)
+  }
   #try(start <- as.numeric(year(start))) #as.numeric(format(location[4], "%Y"))) #default otherwise
   #try(end <-  as.numeric(year(end)))
   
@@ -71,10 +80,16 @@ output <- apply(locations, 1, function(location) {#by row
 
 })
 
+output <- output[!vapply(output, is.null, logical(1))]
+
+if (length(output) < 1) {
+  return(data.frame())
+}
+
 # if the output is tidy, row bind to one big
 # tibble otherwise return a nested list
 if (simplify){
-  output <- do.call("rbind", output)
+  output <- dplyr::bind_rows(output)
 }
 
 if(internal){
@@ -84,6 +99,9 @@ if(internal){
 
 
 clean_daymet <- function(daymet_output){
+  if (is.null(daymet_output) || nrow(daymet_output) < 1) {
+    return(data.frame(site_id = character(), date = as.Date(character()), tavg_air_C = numeric()))
+  }
   #climate_var <- unique(output$measurement) 
   temp_var <- c("tmax..deg.c.", "tmin..deg.c.") #for extraction of only temperature data
   # 
@@ -96,6 +114,10 @@ clean_daymet <- function(daymet_output){
         tavg_air_C = (tmax..deg.c. + tmin..deg.c.)/2, #name the daily air temperature average tavg_air_C
         date = ymd(paste0(as.character(year),"-01-01")) + days(yday -1)
       )
+
+  daymet_clean %>%
+    dplyr::select(site_id, date, tavg_air_C) %>%
+    dplyr::filter(!is.na(date), is.finite(tavg_air_C))
     
   }
  
